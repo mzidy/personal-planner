@@ -1,0 +1,42 @@
+{
+  "name": "personal-planner-app",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxt typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "db:generate": "drizzle-kit generate",
+    "db:check": "drizzle-kit check"
+  },
+  "dependencies": {
+    "@nuxtjs/tailwindcss": "^6.14.0",
+    "@vueuse/core": "^14.2.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "drizzle-orm": "^0.45.2",
+    "lucide-vue-next": "^1.0.0",
+    "nuxt": "^4.4.2",
+    "nuxt-auth-utils": "^0.5.29",
+    "pg": "^8.20.0",
+    "vue": "^3.5.32",
+    "vue-router": "^5.0.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@nuxt/test-utils": "^4.0.2",
+    "@playwright/test": "^1.59.1",
+    "@types/pg": "^8.20.0",
+    "@vue/language-core": "^3.2.6",
+    "drizzle-kit": "^0.31.10",
+    "happy-dom": "^20.9.0",
+    "vitest": "^4.1.4",
+    "vue-tsc": "^3.2.6"
+  }
+}

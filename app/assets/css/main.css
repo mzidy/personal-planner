@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --color-background: 252 248 250;
+  --color-surface: 255 255 255;
+  --color-surface-low: 246 243 245;
+  --color-surface-high: 234 231 233;
+  --color-surface-bright: 255 255 255;
+  --color-ink: 27 27 29;
+  --color-muted: 114 114 128;
+  --color-outline: 198 198 205;
+  --color-accent: 19 27 46;
+  --color-teal: 107 216 203;
+  --color-navy: 17 24 39;
+  --color-rosy: 239 234 236;
+}
+
+html,
+body,
+#__nuxt {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-background font-body text-ink antialiased;
+  background-image: radial-gradient(circle at top left, rgba(107, 216, 203, 0.2), transparent 24%),
+    radial-gradient(circle at top right, rgba(19, 27, 46, 0.08), transparent 20%);
+}
+
+a {
+  @apply transition-colors;
+}
+
+::selection {
+  background: rgba(107, 216, 203, 0.32);
+}
+
+.glass-shell {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(28px);
+}
+
+.section-panel {
+  @apply rounded-panel bg-surface shadow-ambient;
+}
+
+.soft-card {
+  @apply rounded-soft bg-surface-low;
+}
+
+.eyebrow {
+  @apply text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-muted;
+}
+
+.ghost-divider {
+  border-color: rgba(198, 198, 205, 0.14);
+}
+
+.nav-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(19, 27, 46, 0.18);
+  border-radius: 1rem;
+  pointer-events: none;
+}
