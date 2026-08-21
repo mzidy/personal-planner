@@ -1,19 +1,25 @@
 # The Serene Executive
 
-Nuxt 4 + Vue 3 + TypeScript personal planner for focus, time blocks, diary capture, yearly goals, manual finance tracking, and a read-only AI brief.
+Nuxt 4 + Vue 3 + TypeScript personal planner for focus, time blocks, diary capture, yearly goals, manual finance tracking, body metrics, a shopping list, an investment portfolio, and two Claude-powered assistants.
 
 ## Stack
 
 - Nuxt 4 SSR with Nitro server routes
 - Tailwind CSS with a Stitch-inspired editorial design system
 - `nuxt-auth-utils` for sealed cookie sessions and Google OAuth
-- Drizzle ORM on SQLite (`better-sqlite3`), stored in `.data/planner.db`
+- Drizzle ORM on SQLite (`@libsql/client`), stored in `.data/planner.db`
+- `@anthropic-ai/sdk` for the assistant and learning tabs (optional)
 - Vitest and Playwright scaffolding
 
 ## Routes
 
 - Public: `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`
-- Protected: `/dashboard`, `/calendar`, `/priorities`, `/diary`, `/goals`, `/finance`, `/assistant`
+- Protected:
+  - `/dashboard`, `/calendar`, `/priorities`, `/diary`, `/goals`
+  - `/finance` with `/finance/investing`, `/finance/income`, `/finance/expenses`
+  - `/investments` with `/investments/etf`, `/investments/stocks`, `/investments/options`
+  - `/stats` (weekly weigh-ins and a 12-week trend), `/shopping` (short/medium/long-term list)
+  - `/assistant` (AI concierge), `/learning` (AI learning notebooks)
 
 ## Local setup
 
@@ -22,8 +28,9 @@ Nuxt 4 + Vue 3 + TypeScript personal planner for focus, time blocks, diary captu
 3. Keep `NUXT_APP_ORIGIN` as a full site URL like `http://localhost:4000`.
 4. Do not set `NUXT_APP_BASE_URL` unless you intentionally want a path prefix such as `/app/`.
 5. Add Google OAuth credentials if you want live OAuth.
-6. Run `npm install`.
-7. Run `npm run dev`.
+6. Set `NUXT_ANTHROPIC_API_KEY` if you want the `/assistant` and `/learning` tabs. Without it every other feature works normally and those two endpoints return a 503 explaining the key is missing.
+7. Run `npm install`.
+8. Run `npm run dev` — the dev server listens on port 4000 (`devServer.port` in `nuxt.config.ts`).
 
 ## Database
 
