@@ -2,6 +2,7 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  devServer: { port: 4000 },
   modules: ['@nuxtjs/tailwindcss', 'nuxt-auth-utils'],
   css: ['~/assets/css/main.css'],
   app: {
@@ -35,7 +36,8 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     databaseUrl: '',
-    appOrigin: 'http://localhost:3000',
+    anthropicApiKey: '',
+    appOrigin: 'http://localhost:4000',
     singleUserMode: true,
     demoUserEmail: 'founder@serene-executive.app',
     demoUserPassword: 'ConciergeDemo123!',

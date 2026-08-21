@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const objectiveSchema = z.object({
   title: z.string().min(3).max(120),
   detail: z.string().min(3).max(400),
-  status: z.enum(['focus', 'scheduled', 'delegated', 'backlog', 'done']).default('focus'),
+  status: z.enum(['focus', 'scheduled', 'indoor', 'outdoor', 'delegated', 'backlog', 'done']).default('focus'),
   urgency: z.enum(['critical', 'high', 'medium', 'low']).default('medium'),
   focusWindow: z.string().min(2).max(80).default('Morning deep work'),
   scheduledFor: z.string().datetime().nullable().optional(),
@@ -37,7 +37,12 @@ export const journalEntrySchema = z.object({
   title: z.string().min(3).max(120),
   body: z.string().min(10).max(6000),
   prompt: z.string().max(240).default(''),
-  focusTag: z.string().max(80).default('Reflection')
+  focusTag: z.string().max(80).default('Reflection'),
+  entryDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a YYYY-MM-DD date.')
+    .nullable()
+    .optional()
 })
 
 export const journalEntryUpdateSchema = journalEntrySchema.partial()

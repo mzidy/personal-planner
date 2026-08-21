@@ -23,3 +23,10 @@ logs
 .env
 .env.*
 !.env.example
+
+# Stray transpiled output emitted next to sources by typecheck runs
+app/**/*.vue.js
+app/**/*.js
+server/**/*.js
+shared/**/*.js
+!scripts/**/*.js

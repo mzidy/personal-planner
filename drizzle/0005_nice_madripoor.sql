@@ -1,0 +1,20 @@
+CREATE TABLE `investment_positions` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
+	`kind` text NOT NULL,
+	`symbol` text NOT NULL,
+	`name` text DEFAULT '' NOT NULL,
+	`quantity` real NOT NULL,
+	`unit_cost` real NOT NULL,
+	`current_price` real,
+	`currency` text DEFAULT 'USD' NOT NULL,
+	`notes` text DEFAULT '' NOT NULL,
+	`opened_at` text,
+	`option_type` text,
+	`strike` real,
+	`expiry` text,
+	`contract_size` real,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
+);

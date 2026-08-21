@@ -7,8 +7,7 @@ Nuxt 4 + Vue 3 + TypeScript personal planner for focus, time blocks, diary captu
 - Nuxt 4 SSR with Nitro server routes
 - Tailwind CSS with a Stitch-inspired editorial design system
 - `nuxt-auth-utils` for sealed cookie sessions and Google OAuth
-- Drizzle ORM schema and PostgreSQL-ready configuration
-- Demo storage fallback for local exploration when `DATABASE_URL` is not configured
+- Drizzle ORM on SQLite (`better-sqlite3`), stored in `.data/planner.db`
 - Vitest and Playwright scaffolding
 
 ## Routes
@@ -20,41 +19,37 @@ Nuxt 4 + Vue 3 + TypeScript personal planner for focus, time blocks, diary captu
 
 1. Copy `.env.example` to `.env`.
 2. Set `NUXT_SESSION_PASSWORD` to a secret with at least 32 characters.
-3. Keep `NUXT_APP_ORIGIN` as a full site URL like `http://localhost:3000`.
+3. Keep `NUXT_APP_ORIGIN` as a full site URL like `http://localhost:4000`.
 4. Do not set `NUXT_APP_BASE_URL` unless you intentionally want a path prefix such as `/app/`.
 5. Add Google OAuth credentials if you want live OAuth.
 6. Run `npm install`.
 7. Run `npm run dev`.
 
-## Demo mode
+## Database
 
-If `NUXT_DATABASE_URL` is empty, the app boots in demo storage mode with seeded data and demo credentials:
+Data lives in a local SQLite file, `.data/planner.db` by default (override with `NUXT_DATABASE_URL`). On first boot the server applies Drizzle migrations from `./drizzle` and seeds a demo workspace with these credentials:
 
 - Email: `founder@serene-executive.app`
 - Password: `ConciergeDemo123!`
 
-The registration flow can still replace that seeded owner account, preserving the sample workspace data.
+The registration flow can replace that seeded owner account, preserving the sample workspace data. `POST /api/auth/reset-demo` wipes all tables and reseeds.
 
-## Database mode
+Inspect the database directly with:
 
-When `NUXT_DATABASE_URL` is present, the project exposes:
+```bash
+sqlite3 .data/planner.db "SELECT title, status FROM objectives;"
+```
 
-- Drizzle schema in [server/database/schema.ts](/Users/mihazidar/Documents/Playground/personal-planner-app/server/database/schema.ts)
-- Drizzle config in [drizzle.config.ts](/Users/mihazidar/Documents/Playground/personal-planner-app/drizzle.config.ts)
-- Lazy PostgreSQL client in [server/database/client.ts](/Users/mihazidar/Documents/Playground/personal-planner-app/server/database/client.ts)
-
-Generate migrations with:
+After changing `server/database/schema.ts`, generate a new migration with:
 
 ```bash
 npm run db:generate
 ```
+
+Migrations are applied automatically at server start.
 
 ## Quality checks
 
 - `npm run typecheck`
 - `npm run test`
 - `npm run test:e2e`
-
-## Note on this environment
-
-In this Codex sandbox, the workspace `esbuild` binary cannot execute directly, so local verification may require setting `ESBUILD_BINARY_PATH=/opt/homebrew/bin/esbuild` while running Nuxt and Vitest commands. This is an environment quirk, not an app runtime requirement.

@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1785231121914,
+      "tag": "0000_eminent_goblin_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1785400590042,
+      "tag": "0001_peaceful_molly_hayes",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787057812968,
+      "tag": "0002_outstanding_wallow",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787295462250,
+      "tag": "0003_abnormal_hobgoblin",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1787296332602,
+      "tag": "0004_dark_blob",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1787298236684,
+      "tag": "0005_nice_madripoor",
+      "breakpoints": true
+    }
+  ]
+}

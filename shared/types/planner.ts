@@ -1,5 +1,5 @@
 export type Provider = 'password' | 'google'
-export type ObjectiveStatus = 'focus' | 'scheduled' | 'delegated' | 'backlog' | 'done'
+export type ObjectiveStatus = 'focus' | 'scheduled' | 'indoor' | 'outdoor' | 'delegated' | 'backlog' | 'done'
 export type UrgencyLevel = 'critical' | 'high' | 'medium' | 'low'
 export type BlockKind = 'meeting' | 'focus' | 'travel' | 'admin'
 export type GoalMilestoneStatus = 'planned' | 'active' | 'completed'
@@ -94,6 +94,8 @@ export interface JournalEntryRecord {
   body: string
   prompt: string
   focusTag: string
+  /** Optional calendar date (YYYY-MM-DD) the reflection belongs to. */
+  entryDate: string | null
   createdAt: string
   updatedAt: string
 }

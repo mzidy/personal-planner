@@ -88,7 +88,7 @@ export async function createDemoState(email: string, password: string): Promise<
       userId,
       title: 'Confirm anniversary dinner',
       detail: 'Finalize venue, guest list, and travel transfers for tomorrow evening.',
-      status: 'delegated',
+      status: 'indoor',
       urgency: 'medium',
       focusWindow: 'Evening',
       scheduledFor: null,
@@ -210,6 +210,7 @@ export async function createDemoState(email: string, password: string): Promise<
         'The quiet hours of the morning are still the clearest point in the day. The deck is finally moving from observation to conviction, which means the next step is simplification, not more content.',
       prompt: 'What decision today protects long-term momentum?',
       focusTag: 'Focused',
+      entryDate: '2026-04-16',
       createdAt: iso('2026-04-16T06:20:00.000Z'),
       updatedAt: iso('2026-04-16T06:20:00.000Z')
     },
@@ -221,6 +222,7 @@ export async function createDemoState(email: string, password: string): Promise<
         'The transition between tasks was cleaner than yesterday, largely because the calendar finally reflected real energy instead of idealized commitments.',
       prompt: 'What should be removed tomorrow?',
       focusTag: 'Review',
+      entryDate: '2026-04-15',
       createdAt: iso('2026-04-15T19:12:00.000Z'),
       updatedAt: iso('2026-04-15T19:12:00.000Z')
     }
