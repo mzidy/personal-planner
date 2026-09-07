@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DashboardPayload } from '~~/shared/types/planner'
+import type { RoutineOverview, RoutineState } from '~~/shared/types/routine'
 
 definePageMeta({
   middleware: 'protected'
@@ -7,6 +8,31 @@ definePageMeta({
 
 const { currency, shortTime, percent, toIso } = useExecutiveFormat()
 const { data: dashboard, refresh } = await usePlannerFetch<DashboardPayload>('dashboard-page', '/api/dashboard')
+const { data: routine } = await usePlannerFetch<RoutineOverview>('dashboard-routine', '/api/routine/overview')
+
+const todayRoutine = computed(() => routine.value?.todayEntries || [])
+
+const ROUTINE_TONES: Record<RoutineState, string> = {
+  planned: 'bg-surface text-muted',
+  done: 'bg-emerald-100 text-emerald-800',
+  partial: 'bg-amber-100 text-amber-800',
+  missed: 'bg-rose-100 text-rose-800'
+}
+
+const ROUTINE_LABELS: Record<RoutineState, string> = {
+  planned: 'Planned',
+  done: 'Done',
+  partial: 'Partial',
+  missed: 'Missed'
+}
+
+function routineTone(state: RoutineState) {
+  return ROUTINE_TONES[state] || ROUTINE_TONES.planned
+}
+
+function routineLabel(state: RoutineState) {
+  return ROUTINE_LABELS[state] || state
+}
 
 const journalForm = reactive({
   title: 'Quick diary',
@@ -64,7 +90,7 @@ async function submitFocusSession() {
   <div v-if="dashboard" class="space-y-8">
     <AppPageHero
       eyebrow="Daily Command"
-      :title="`${dashboard.greeting} Your agenda is ${dashboard.completionRate}% aligned.`"
+      :title="dashboard.greeting"
       :subtitle="`${dashboard.dateLabel}. Focus and finance remain visible without turning the workspace into a dashboard spreadsheet.`"
     >
       <template #aside>
@@ -72,6 +98,25 @@ async function submitFocusSession() {
           <p class="eyebrow">Today</p>
           <p class="mt-3 font-display text-3xl font-bold tracking-[-0.05em]">{{ dashboard.dateLabel }}</p>
           <p class="mt-2 text-sm text-muted">{{ dashboard.agenda.length }} scheduled blocks</p>
+
+          <div v-if="todayRoutine.length" class="mt-4 space-y-2 border-t border-outline/10 pt-4">
+            <p class="eyebrow">Daily routine</p>
+            <div
+              v-for="entry in todayRoutine"
+              :key="entry.id"
+              class="flex items-center justify-between gap-3"
+            >
+              <span class="min-w-0 flex-1 truncate text-sm text-ink" :title="entry.description">
+                {{ entry.description }}
+              </span>
+              <span
+                class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                :class="routineTone(entry.state)"
+              >
+                {{ routineLabel(entry.state) }}
+              </span>
+            </div>
+          </div>
         </PanelCard>
       </template>
     </AppPageHero>

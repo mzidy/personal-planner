@@ -262,6 +262,19 @@ export const investmentPositions = sqliteTable('investment_positions', {
   updatedAt: text('updated_at').notNull()
 })
 
+export const routineEntries = sqliteTable('routine_entries', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  description: text('description').notNull(),
+  // Date-only (YYYY-MM-DD): the day the entry belongs to, which is what history groups by.
+  entryDate: text('entry_date').notNull(),
+  state: text('state').notNull().default('planned'),
+  // Manual order within a day. Legacy rows share 0 and are normalised on first move.
+  position: integer('position').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull()
+})
+
 export const auditEvents = sqliteTable('audit_events', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),

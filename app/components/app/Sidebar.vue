@@ -12,12 +12,22 @@ const navigation = useNavigation()
 const route = useRoute()
 const runtimeConfig = useRuntimeConfig()
 
-function isParentActive(path: string) {
+interface NavTarget {
+  to: string
+  /** Extra route prefixes this entry owns, for sections that live outside its own path. */
+  match?: string[]
+}
+
+function ownsRoute(path: string) {
   return route.path === path || route.path.startsWith(`${path}/`)
 }
 
-function isChildActive(target: string) {
-  return route.path === target
+function isParentActive(item: NavTarget) {
+  return ownsRoute(item.to) || (item.match || []).some(ownsRoute)
+}
+
+function isChildActive(child: NavTarget) {
+  return child.match?.length ? child.match.some(ownsRoute) : route.path === child.to
 }
 </script>
 
@@ -41,7 +51,7 @@ function isChildActive(target: string) {
           :to="item.to"
           class="relative flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200"
           :class="
-            isParentActive(item.to)
+            isParentActive(item)
               ? item.accent
                 ? 'bg-ink text-white nav-active'
                 : 'bg-surface text-ink nav-active'
@@ -55,7 +65,7 @@ function isChildActive(target: string) {
         </NuxtLink>
 
         <div
-          v-if="item.children?.length && isParentActive(item.to)"
+          v-if="item.children?.length && isParentActive(item)"
           class="ml-5 space-y-1 border-l border-outline/10 pl-4"
         >
           <NuxtLink
@@ -64,7 +74,7 @@ function isChildActive(target: string) {
             :to="child.to"
             class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-all duration-200"
             :class="
-              isChildActive(child.to)
+              isChildActive(child)
                 ? 'bg-surface text-ink'
                 : 'text-muted hover:bg-surface hover:text-ink'
             "
