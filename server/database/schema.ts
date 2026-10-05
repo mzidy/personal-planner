@@ -262,6 +262,39 @@ export const investmentPositions = sqliteTable('investment_positions', {
   updatedAt: text('updated_at').notNull()
 })
 
+/**
+ * A routine item as a recurring definition: it exists every day rather than on
+ * the single day it was typed. Archiving retires it from future days while
+ * leaving its recorded history intact.
+ */
+export const routineTemplates = sqliteTable('routine_templates', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  description: text('description').notNull(),
+  position: integer('position').notNull().default(0),
+  archivedAt: text('archived_at'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull()
+})
+
+/** One row per routine item per day — absence means the day is still 'planned'. */
+export const routineDayStates = sqliteTable(
+  'routine_day_states',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    templateId: text('template_id')
+      .notNull()
+      .references(() => routineTemplates.id, { onDelete: 'cascade' }),
+    entryDate: text('entry_date').notNull(),
+    state: text('state').notNull().default('planned'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull()
+  },
+  table => [uniqueIndex('routine_day_states_unique').on(table.userId, table.templateId, table.entryDate)]
+)
+
+// Superseded by routineTemplates + routineDayStates; retained until its data is migrated.
 export const routineEntries = sqliteTable('routine_entries', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -271,6 +304,72 @@ export const routineEntries = sqliteTable('routine_entries', {
   state: text('state').notNull().default('planned'),
   // Manual order within a day. Legacy rows share 0 and are normalised on first move.
   position: integer('position').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull()
+})
+
+/** An investing rule the portfolio is meant to be held against. */
+export const portfolioRules = sqliteTable('portfolio_rules', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description').notNull().default(''),
+  // Date-only (YYYY-MM-DD): when the rule was put in place.
+  dateSet: text('date_set').notNull(),
+  isIndex: integer('is_index', { mode: 'boolean' }).notNull().default(false),
+  geo: text('geo').notNull().default(''),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull()
+})
+
+/**
+ * A saved ticker review. The metric snapshot is kept alongside the verdict so
+ * an old review still shows the numbers it was actually based on — re-fetching
+ * today's prices would quietly rewrite history.
+ */
+export const tickerReviews = sqliteTable('ticker_reviews', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  symbol: text('symbol').notNull(),
+  companyName: text('company_name').notNull().default(''),
+  technical: text('technical', { mode: 'json' }).$type<Record<string, unknown>>().notNull().default({}),
+  fundamental: text('fundamental', { mode: 'json' }).$type<Record<string, unknown>>().notNull().default({}),
+  /** Narrative written by Claude; empty when no API key is configured. */
+  review: text('review').notNull().default(''),
+  /** Set when the narrative could not be generated, so the UI can explain why. */
+  reviewError: text('review_error').notNull().default(''),
+  createdAt: text('created_at').notNull()
+})
+
+/**
+ * One answer per Personal Growth prompt. The step key comes from
+ * shared/utils/growth-steps.ts; a row exists only once something is written.
+ */
+export const growthAnswers = sqliteTable(
+  'growth_answers',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    stepKey: text('step_key').notNull(),
+    answer: text('answer').notNull().default(''),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull()
+  },
+  table => [uniqueIndex('growth_answers_unique').on(table.userId, table.stepKey)]
+)
+
+/**
+ * A habit designed through the Habit guide wizard. Answers are keyed by the
+ * field keys in shared/utils/habit-wizard.ts, so adding a step to the wizard
+ * needs no migration.
+ */
+export const habitPlans = sqliteTable('habit_plans', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: text('title').notNull().default(''),
+  answers: text('answers', { mode: 'json' }).$type<Record<string, string>>().notNull().default({}),
+  /** draft while the wizard is being worked through, active once committed to. */
+  status: text('status').notNull().default('draft'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull()
 })

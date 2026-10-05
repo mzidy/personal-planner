@@ -5,6 +5,13 @@ export default defineNuxtConfig({
   devServer: { port: 4000 },
   modules: ['@nuxtjs/tailwindcss', 'nuxt-auth-utils'],
   css: ['~/assets/css/main.css'],
+  components: [
+    // Templates use <PanelCard> / <StatusPill>, so the ui directory must not be
+    // path-prefixed. Everything else keeps the default prefix (AppPageHero,
+    // FinanceSectionView, StatsWeightTrendChart, ...).
+    { path: '~/components/ui', pathPrefix: false },
+    '~/components'
+  ],
   app: {
     head: {
       title: 'The Serene Executive',
@@ -36,6 +43,10 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     databaseUrl: '',
+    // Set these (TURSO_DATABASE_URL / TURSO_AUTH_TOKEN) to run against hosted
+    // libSQL instead of a local file — required on serverless hosts.
+    tursoDatabaseUrl: process.env.TURSO_DATABASE_URL || '',
+    tursoAuthToken: process.env.TURSO_AUTH_TOKEN || '',
     anthropicApiKey: '',
     appOrigin: 'http://localhost:4000',
     singleUserMode: true,
@@ -63,7 +74,9 @@ export default defineNuxtConfig({
     }
   },
   routeRules: {
-    '/': { redirect: '/dashboard' }
+    '/': { redirect: '/dashboard' },
+    // Daily routine moved from Goals to Tasks; keep old links working.
+    '/goals/routine': { redirect: { to: '/priorities/routine', statusCode: 301 } }
   },
   typescript: {
     typeCheck: true

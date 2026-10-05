@@ -57,6 +57,41 @@
       "when": 1788512466854,
       "tag": "0007_lovely_molly_hayes",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1788789476953,
+      "tag": "0008_dizzy_network",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1788843694264,
+      "tag": "0009_high_blizzard",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1789396228245,
+      "tag": "0010_real_randall_flagg",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1790160071084,
+      "tag": "0011_low_sentry",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1790245545977,
+      "tag": "0012_dear_roulette",
+      "breakpoints": true
     }
   ]
 }

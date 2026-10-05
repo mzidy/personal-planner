@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import type { StatsOverview } from '~~/shared/types/stats'
+import StatsWeightTrendChart from '~/components/stats/WeightTrendChart.vue'
 
 definePageMeta({
   middleware: 'protected'
 })
 
 const { data: overview, refresh } = await usePlannerFetch<StatsOverview>('stats-overview', '/api/stats/overview')
+
+const TABS = [
+  { label: 'Overview', to: '/stats' },
+  { label: 'Personal Growth', to: '/stats/growth' }
+]
+
+const route = useRoute()
 
 const weightInput = ref('')
 const bodyFatInput = ref('')
@@ -91,126 +99,6 @@ async function deleteWeighIn(id: string) {
   }
 }
 
-// ---- Chart geometry -------------------------------------------------------
-const CHART = { width: 720, height: 260, left: 46, right: 16, top: 18, bottom: 30 }
-
-const plot = computed(() => ({
-  width: CHART.width - CHART.left - CHART.right,
-  height: CHART.height - CHART.top - CHART.bottom
-}))
-
-const scale = computed(() => {
-  const values = (overview.value?.series || []).map(point => point.weightKg).filter((v): v is number => v !== null)
-  const target = overview.value?.profile?.targetWeightKg
-
-  if (!values.length) {
-    return null
-  }
-
-  const candidates = target != null ? [...values, target] : values
-  const rawMin = Math.min(...candidates)
-  const rawMax = Math.max(...candidates)
-  const spread = rawMax - rawMin
-  const padding = spread < 2 ? 1.5 : spread * 0.15
-
-  return { min: rawMin - padding, max: rawMax + padding }
-})
-
-function xFor(index: number) {
-  const count = overview.value?.series.length || 1
-  if (count === 1) {
-    return CHART.left + plot.value.width / 2
-  }
-  return CHART.left + (index / (count - 1)) * plot.value.width
-}
-
-function yFor(weight: number) {
-  const bounds = scale.value
-  if (!bounds || bounds.max === bounds.min) {
-    return CHART.top + plot.value.height / 2
-  }
-  const ratio = (weight - bounds.min) / (bounds.max - bounds.min)
-  return CHART.top + plot.value.height - ratio * plot.value.height
-}
-
-interface ChartPoint {
-  weekKey: string
-  label: string
-  weightKg: number
-  index: number
-  x: number
-  y: number
-}
-
-const points = computed<ChartPoint[]>(() => {
-  const result: ChartPoint[] = []
-
-  ;(overview.value?.series || []).forEach((point, index) => {
-    if (point.weightKg === null) {
-      return
-    }
-    result.push({
-      weekKey: point.weekKey,
-      label: point.label,
-      weightKg: point.weightKg,
-      index,
-      x: xFor(index),
-      y: yFor(point.weightKg)
-    })
-  })
-
-  return result
-})
-
-/** Separate polyline segments so missed weeks leave a visible gap. */
-const segments = computed(() => {
-  const result: string[] = []
-  let current: string[] = []
-  let lastIndex: number | null = null
-
-  for (const point of points.value) {
-    if (lastIndex !== null && point.index !== lastIndex + 1) {
-      if (current.length > 1) result.push(current.join(' '))
-      current = []
-    }
-    current.push(`${point.x},${point.y}`)
-    lastIndex = point.index
-  }
-  if (current.length > 1) result.push(current.join(' '))
-  return result
-})
-
-const areaPath = computed(() => {
-  if (points.value.length < 2) {
-    return ''
-  }
-  const baseline = CHART.top + plot.value.height
-  const line = points.value.map(point => `${point.x},${point.y}`).join(' L ')
-  const first = points.value[0]!
-  const last = points.value[points.value.length - 1]!
-  return `M ${first.x},${baseline} L ${line} L ${last.x},${baseline} Z`
-})
-
-const gridLines = computed(() => {
-  const bounds = scale.value
-  if (!bounds) {
-    return []
-  }
-  return [0, 0.25, 0.5, 0.75, 1].map(ratio => {
-    const weight = bounds.max - ratio * (bounds.max - bounds.min)
-    return { y: CHART.top + ratio * plot.value.height, label: weight.toFixed(1) }
-  })
-})
-
-const targetY = computed(() => {
-  const target = overview.value?.profile?.targetWeightKg
-  const bounds = scale.value
-  if (target == null || !bounds) {
-    return null
-  }
-  return yFor(target)
-})
-
 function formatDelta(value: number | null) {
   if (value === null) {
     return '—'
@@ -250,6 +138,18 @@ function formatWeek(weekKey: string) {
         </PanelCard>
       </template>
     </AppPageHero>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <NuxtLink
+        v-for="tab in TABS"
+        :key="tab.to"
+        :to="tab.to"
+        class="rounded-full px-4 py-2 text-sm font-semibold transition-colors"
+        :class="route.path === tab.to ? 'bg-ink text-white' : 'bg-surface-low text-ink hover:bg-surface'"
+      >
+        {{ tab.label }}
+      </NuxtLink>
+    </div>
 
     <p v-if="errorMessage" class="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
       {{ errorMessage }}
@@ -293,104 +193,17 @@ function formatWeek(weekKey: string) {
         </div>
         <div class="flex items-center gap-4 text-sm text-muted">
           <span class="flex items-center gap-2"><span class="h-2 w-6 rounded-full bg-ink"></span>Weight</span>
-          <span v-if="targetY !== null" class="flex items-center gap-2">
-            <span class="h-0.5 w-6 rounded-full bg-teal-600"></span>Target
+          <span v-if="overview.profile?.targetWeightKg != null" class="flex items-center gap-2">
+            <span class="h-0.5 w-6 rounded-full bg-teal"></span>Target
           </span>
         </div>
       </div>
 
-      <p v-if="!points.length" class="py-12 text-center text-sm text-muted">
-        No weigh-ins yet — log your first one below and the chart will fill in week by week.
-      </p>
-
-      <svg
-        v-else
-        :viewBox="`0 0 ${CHART.width} ${CHART.height}`"
-        class="w-full"
-        role="img"
-        aria-label="Weight over the last 12 weeks"
-      >
-        <g>
-          <line
-            v-for="line in gridLines"
-            :key="`grid-${line.label}`"
-            :x1="CHART.left"
-            :x2="CHART.width - CHART.right"
-            :y1="line.y"
-            :y2="line.y"
-            stroke="currentColor"
-            stroke-width="1"
-            class="text-black/10"
-          />
-          <text
-            v-for="line in gridLines"
-            :key="`label-${line.label}`"
-            :x="CHART.left - 8"
-            :y="line.y + 4"
-            text-anchor="end"
-            font-size="11"
-            fill="currentColor"
-            class="text-muted"
-          >
-            {{ line.label }}
-          </text>
-        </g>
-
-        <path v-if="areaPath" :d="areaPath" fill="currentColor" class="text-ink/10" />
-
-        <line
-          v-if="targetY !== null"
-          :x1="CHART.left"
-          :x2="CHART.width - CHART.right"
-          :y1="targetY"
-          :y2="targetY"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-dasharray="6 5"
-          class="text-teal-600"
-        />
-
-        <polyline
-          v-for="(segment, index) in segments"
-          :key="`segment-${index}`"
-          :points="segment"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="text-ink"
-        />
-
-        <g>
-          <circle
-            v-for="point in points"
-            :key="`dot-${point.weekKey}`"
-            :cx="point.x"
-            :cy="point.y"
-            r="4"
-            fill="currentColor"
-            class="text-ink"
-          >
-            <title>{{ point.label }} — {{ point.weightKg.toFixed(1) }} kg</title>
-          </circle>
-        </g>
-
-        <g>
-          <text
-            v-for="(point, index) in overview.series"
-            :key="`x-${point.weekKey}`"
-            :x="xFor(index)"
-            :y="CHART.height - 8"
-            text-anchor="middle"
-            font-size="11"
-            fill="currentColor"
-            class="text-muted"
-          >
-            {{ index % 2 === 0 ? point.label : '' }}
-          </text>
-        </g>
-      </svg>
+      <StatsWeightTrendChart :series="overview.series" :target-weight-kg="overview.profile?.targetWeightKg">
+        <template #empty>
+          No weigh-ins yet — log your first one below and the chart will fill in week by week.
+        </template>
+      </StatsWeightTrendChart>
     </PanelCard>
 
     <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">

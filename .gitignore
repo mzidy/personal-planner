@@ -30,3 +30,7 @@ app/**/*.js
 server/**/*.js
 shared/**/*.js
 !scripts/**/*.js
+
+# Vercel project link (contains projectId/orgId)
+.vercel
+.env*

@@ -7,13 +7,13 @@ const moveSchema = z.object({
 
 export default defineEventHandler(async event => {
   const user = await requireAppUser(event)
-  const entryId = getRouterParam(event, 'id') || ''
+  const templateId = getRouterParam(event, 'id') || ''
   const body = moveSchema.parse(await readBody(event))
-  const entries = await useRoutineRepository().moveEntry(user.id, entryId, body.direction)
+  const templates = await useRoutineRepository().moveTemplate(user.id, templateId, body.direction)
 
-  if (!entries) {
-    throw createError({ statusCode: 404, statusMessage: 'Routine entry not found.' })
+  if (!templates) {
+    throw createError({ statusCode: 404, statusMessage: 'Routine item not found.' })
   }
 
-  return { entries }
+  return { templates }
 })

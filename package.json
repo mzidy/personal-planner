@@ -13,7 +13,9 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
-    "db:check": "drizzle-kit check"
+    "db:check": "drizzle-kit check",
+    "db:deploy": "node scripts/db-deploy.mjs",
+    "db:copy-user": "node scripts/migrate-to-turso.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

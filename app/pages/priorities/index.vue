@@ -133,7 +133,7 @@ async function dropOnLane(status: ObjectiveStatus) {
   <div class="space-y-8">
     <AppPageHero
       eyebrow="Operational Focus"
-      title="Executive priorities"
+      title="Tasks"
       subtitle="Keep the decision-heavy work visible, move the rest to deliberate slots, and mark finished work without clutter."
     >
       <template #aside>
