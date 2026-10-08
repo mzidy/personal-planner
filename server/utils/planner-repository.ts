@@ -439,6 +439,26 @@ export function usePlannerRepository() {
       return updated
     },
 
+    /**
+     * Tasks, time blocks and focus sessions reference an objective with
+     * `onDelete: 'set null'`, so they survive this and simply lose the link.
+     */
+    async deleteObjective(userId: string, objectiveId: string) {
+      const db = useDatabase()
+      const [record] = (await db
+        .select()
+        .from(tables.objectives)
+        .where(and(eq(tables.objectives.userId, userId), eq(tables.objectives.id, objectiveId)))
+        .limit(1)) as ObjectiveRecord[]
+
+      if (!record) {
+        return null
+      }
+
+      await db.delete(tables.objectives).where(eq(tables.objectives.id, objectiveId))
+      return record
+    },
+
     async listTimeBlocks(userId: string) {
       const db = useDatabase()
       return (await db
