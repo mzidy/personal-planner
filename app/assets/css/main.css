@@ -34,6 +34,29 @@ a {
   @apply transition-colors;
 }
 
+/*
+ * Selects otherwise keep the platform's own chrome — in Safari a lighter
+ * background and a stepper control — so they read as a different kind of field
+ * from the inputs sitting beside them. Stripping the native appearance and
+ * drawing our own chevron puts them on the same footing. The arrow is inlined
+ * as a data URI so it inherits nothing and cannot fail to load.
+ */
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23727280' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 0.7rem;
+  padding-right: 2.75rem;
+}
+
+/* Firefox keeps a focus ring inside the control; ours is drawn on the box. */
+select:-moz-focusring {
+  color: transparent;
+  text-shadow: 0 0 0 rgb(var(--color-ink));
+}
+
 ::selection {
   background: rgba(107, 216, 203, 0.32);
 }
