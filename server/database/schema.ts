@@ -386,6 +386,11 @@ export const notes = sqliteTable('notes', {
   source: text('source').notNull().default('manual'),
   /** The original file name, kept only as a label for an imported note. */
   sourceName: text('source_name').notNull().default(''),
+  /**
+   * Rows of cells when the note was recognised as a table, null otherwise.
+   * `body` always holds a readable text version, so nothing depends on this.
+   */
+  tableRows: text('table_rows', { mode: 'json' }).$type<string[][] | null>(),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull()
 })

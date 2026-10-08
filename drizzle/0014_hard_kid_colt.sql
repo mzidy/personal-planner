@@ -1,0 +1,1 @@
+ALTER TABLE `notes` ADD `table_rows` text;

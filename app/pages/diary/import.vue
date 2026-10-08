@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { NoteRecord } from '~~/shared/types/notes'
+import { detectTable, linesFromBlocks, tableToText } from '~~/shared/utils/ocr-table'
 import DiaryTabs from '~/components/diary/DiaryTabs.vue'
 
 definePageMeta({
@@ -11,6 +12,10 @@ const MAX_BYTES = 12 * 1024 * 1024
 const fileName = ref('')
 const previewUrl = ref('')
 const extracted = ref('')
+const tableRows = ref<string[][] | null>(null)
+const tableReason = ref('')
+/** Keep the grid, or save the text as it came out. */
+const keepTable = ref(true)
 const progress = ref(0)
 const stage = ref('')
 const reading = ref(false)
@@ -34,6 +39,9 @@ function reset() {
   releasePreview()
   fileName.value = ''
   extracted.value = ''
+  tableRows.value = null
+  tableReason.value = ''
+  keepTable.value = true
   progress.value = 0
   stage.value = ''
   errorMessage.value = ''
@@ -94,8 +102,20 @@ async function readText(file: File) {
     })
 
     try {
-      const result = await worker.recognize(file)
-      extracted.value = result.data.text.trim()
+      // `blocks` carries the per-word bounding boxes the table detection needs;
+      // the plain text alone has no positions in it.
+      const result = await worker.recognize(file, {}, { text: true, blocks: true })
+      const detection = detectTable(linesFromBlocks(result.data.blocks))
+
+      if (detection.isTable) {
+        tableRows.value = detection.rows
+        extracted.value = tableToText(detection.rows)
+      } else {
+        tableRows.value = null
+        extracted.value = result.data.text.trim()
+      }
+      tableReason.value = detection.reason
+
       if (!extracted.value) {
         errorMessage.value = 'No text was found in that image.'
       }
@@ -123,7 +143,12 @@ async function saveNote() {
   try {
     const note = await $fetch<NoteRecord>('/api/notes', {
       method: 'POST',
-      body: { body: extracted.value.trim(), source: 'import', sourceName: fileName.value }
+      body: {
+        body: extracted.value.trim(),
+        source: 'import',
+        sourceName: fileName.value,
+        tableRows: keepTable.value ? tableRows.value : null
+      }
     })
 
     const stamp = new Date(note.createdAt).toLocaleString('en-US', {
@@ -213,10 +238,38 @@ async function saveNote() {
         <div>
           <p class="eyebrow">Extracted text</p>
           <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">Check it, then save</h2>
-          <p class="mt-1 text-sm text-muted">Recognition is rarely perfect — edit before saving.</p>
+          <p class="mt-1 text-sm text-muted">Recognition is rarely perfect — check it before saving.</p>
         </div>
 
+        <div v-if="tableRows" class="space-y-3">
+          <label class="flex items-center gap-3 rounded-2xl bg-surface-low px-4 py-3">
+            <input v-model="keepTable" class="h-4 w-4 accent-black" type="checkbox" />
+            <span class="text-sm font-semibold text-ink">Keep it as a table</span>
+            <span class="text-xs text-muted">{{ tableReason }}</span>
+          </label>
+
+          <div v-if="keepTable" class="overflow-x-auto rounded-2xl bg-surface-low">
+            <table class="w-full min-w-[22rem] text-sm">
+              <tbody>
+                <tr v-for="(row, rowIndex) in tableRows" :key="rowIndex" class="border-b border-outline/10 last:border-0">
+                  <td
+                    v-for="(cell, cellIndex) in row"
+                    :key="cellIndex"
+                    class="px-3 py-2 align-top"
+                    :class="rowIndex === 0 ? 'font-semibold text-ink' : 'text-muted'"
+                  >
+                    {{ cell }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <p v-else-if="tableReason" class="text-xs text-muted">{{ tableReason }}</p>
+
         <textarea
+          v-show="!tableRows || !keepTable"
           v-model="extracted"
           class="min-h-[18rem] w-full rounded-2xl bg-surface-low px-4 py-3 font-mono text-sm leading-6 outline-none"
           placeholder="Text read from the image appears here."

@@ -10,7 +10,11 @@ function nowIso() {
 }
 
 function hydrate(row: typeof tables.notes.$inferSelect): NoteRecord {
-  return { ...row, source: row.source as NoteSource }
+  return {
+    ...row,
+    source: row.source as NoteSource,
+    tableRows: (row.tableRows as string[][] | null) ?? null
+  }
 }
 
 export function useNotesRepository() {
@@ -33,6 +37,7 @@ export function useNotesRepository() {
         body: input.body.trim(),
         source: input.source || 'manual',
         sourceName: input.sourceName || '',
+        tableRows: input.tableRows ?? null,
         createdAt: timestamp,
         updatedAt: timestamp
       }
