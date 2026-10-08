@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { FinanceOverview } from '~~/shared/types/planner'
+import type { MarketsOverview } from '~~/shared/types/markets'
+import MarketsIndexTrendChart from '~/components/markets/IndexTrendChart.vue'
 
 const props = defineProps<{
   section: 'overview' | 'investing' | 'income' | 'expenses'
@@ -7,6 +9,7 @@ const props = defineProps<{
 
 const { currency, percent, shortDate, toIso } = useExecutiveFormat()
 const { data: finance, refresh } = await usePlannerFetch<FinanceOverview>('finance-page', '/api/finance/overview')
+const { data: markets } = await usePlannerFetch<MarketsOverview>('finance-markets', '/api/markets/indices')
 
 const sections = [
   { label: 'Overview', key: 'overview', to: '/finance' },
@@ -166,6 +169,26 @@ async function createTransaction() {
         {{ sectionItem.label }}
       </NuxtLink>
     </div>
+
+    <PanelCard class="space-y-4">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p class="eyebrow">Markets</p>
+          <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">Last 12 weeks</h2>
+          <p class="mt-1 text-sm text-muted">
+            Percent change from the first week, so both indices share one axis.
+          </p>
+        </div>
+        <p v-if="markets?.fetchedAt && !markets.error" class="text-xs text-muted">
+          Live from Yahoo Finance · updated {{ shortDate(markets.fetchedAt) }}
+        </p>
+      </div>
+
+      <MarketsIndexTrendChart v-if="markets && markets.series.length" :series="markets.series" />
+      <p v-else class="rounded-soft bg-surface-low px-4 py-8 text-center text-sm text-muted">
+        Market data is unavailable right now. It refreshes automatically on the next load.
+      </p>
+    </PanelCard>
 
     <div class="grid gap-6 xl:grid-cols-[1.3fr_0.8fr]">
       <PanelCard class="space-y-4">

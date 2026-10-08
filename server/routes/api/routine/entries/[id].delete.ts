@@ -2,15 +2,16 @@ import { useRoutineRepository } from '~~/server/utils/routine-repository'
 
 export default defineEventHandler(async event => {
   const user = await requireAppUser(event)
-  const entryId = getRouterParam(event, 'id') || ''
-  const record = await useRoutineRepository().deleteEntry(user.id, entryId)
+  const templateId = getRouterParam(event, 'id') || ''
+  // Archive rather than delete so recorded history keeps reading correctly.
+  const record = await useRoutineRepository().archiveTemplate(user.id, templateId)
 
   if (!record) {
-    throw createError({ statusCode: 404, statusMessage: 'Routine entry not found.' })
+    throw createError({ statusCode: 404, statusMessage: 'Routine item not found.' })
   }
 
-  await usePlannerRepository().createAuditEvent(user.id, 'delete', 'routine-entry', record.id, {
-    entryDate: record.entryDate
+  await usePlannerRepository().createAuditEvent(user.id, 'archive', 'routine-item', record.id, {
+    description: record.description
   })
   return { ok: true }
 })

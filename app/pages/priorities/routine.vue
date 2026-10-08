@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RoutineEntryRecord, RoutineOverview, RoutineState } from '~~/shared/types/routine'
+import type { RoutineDayItem, RoutineOverview, RoutineState } from '~~/shared/types/routine'
 
 definePageMeta({
   middleware: 'protected'
@@ -70,7 +70,7 @@ async function addEntry() {
   }
 }
 
-async function setState(entry: RoutineEntryRecord, state: RoutineState) {
+async function setState(entry: RoutineDayItem, state: RoutineState) {
   if (entry.state === state) {
     return
   }
@@ -78,29 +78,29 @@ async function setState(entry: RoutineEntryRecord, state: RoutineState) {
   errorMessage.value = ''
 
   try {
-    await $fetch(`/api/routine/entries/${entry.id}`, { method: 'PATCH', body: { state } })
+    await $fetch(`/api/routine/entries/${entry.templateId}`, { method: 'PATCH', body: { state } })
     await refresh()
   } catch {
     errorMessage.value = 'Unable to update that entry.'
   }
 }
 
-async function moveEntry(entry: RoutineEntryRecord, direction: 'up' | 'down') {
+async function moveEntry(entry: RoutineDayItem, direction: 'up' | 'down') {
   errorMessage.value = ''
 
   try {
-    await $fetch(`/api/routine/entries/${entry.id}/move`, { method: 'POST', body: { direction } })
+    await $fetch(`/api/routine/entries/${entry.templateId}/move`, { method: 'POST', body: { direction } })
     await refresh()
   } catch {
     errorMessage.value = 'Unable to reorder that entry.'
   }
 }
 
-async function deleteEntry(entry: RoutineEntryRecord) {
+async function deleteEntry(entry: RoutineDayItem) {
   errorMessage.value = ''
 
   try {
-    await $fetch(`/api/routine/entries/${entry.id}`, { method: 'DELETE' })
+    await $fetch(`/api/routine/entries/${entry.templateId}`, { method: 'DELETE' })
     await refresh()
   } catch {
     errorMessage.value = 'Unable to delete that entry.'
@@ -115,14 +115,14 @@ const pastDays = computed(() => (overview.value?.history || []).filter(day => !d
     <AppPageHero
       eyebrow="Rhythm"
       title="Daily routine"
-      subtitle="Write what the day asks of you, then mark how it actually went. The date is there so you can log and review past days."
+      subtitle="Your routine repeats every day. Mark how each item went; the history below keeps a record per day."
     />
 
     <div class="flex flex-wrap items-center gap-2">
-      <NuxtLink to="/goals" class="rounded-full bg-surface-low px-4 py-2 text-sm font-semibold text-ink hover:bg-surface">
+      <NuxtLink to="/priorities" class="rounded-full bg-surface-low px-4 py-2 text-sm font-semibold text-ink hover:bg-surface">
         Overview
       </NuxtLink>
-      <NuxtLink to="/goals/routine" class="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white">
+      <NuxtLink to="/priorities/routine" class="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white">
         Daily routine
       </NuxtLink>
     </div>
@@ -139,13 +139,13 @@ const pastDays = computed(() => (overview.value?.history || []).filter(day => !d
         </h2>
       </div>
 
-      <p v-if="!overview.todayEntries.length" class="rounded-soft bg-surface-low px-4 py-8 text-center text-sm text-muted">
-        Nothing logged for today yet — add your first routine above.
+      <p v-if="!overview.todayItems.length" class="rounded-soft bg-surface-low px-4 py-8 text-center text-sm text-muted">
+        No routine items yet — add your first one below. Items you add appear every day.
       </p>
 
       <div v-else class="space-y-3">
         <article
-          v-for="(entry, index) in overview.todayEntries"
+          v-for="(entry, index) in overview.todayItems"
           :key="entry.id"
           class="rounded-soft bg-surface-low px-5 py-4"
         >
@@ -167,7 +167,7 @@ const pastDays = computed(() => (overview.value?.history || []).filter(day => !d
               <button
                 type="button"
                 class="rounded-full bg-surface px-2 py-1 text-xs font-semibold text-ink disabled:opacity-30"
-                :disabled="index === overview.todayEntries.length - 1"
+                :disabled="index === overview.todayItems.length - 1"
                 aria-label="Move down"
                 title="Move down"
                 @click="moveEntry(entry, 'down')"
@@ -200,7 +200,7 @@ const pastDays = computed(() => (overview.value?.history || []).filter(day => !d
       </div>
 
       <p v-if="!pastDays.length" class="rounded-soft bg-surface-low px-4 py-8 text-center text-sm text-muted">
-        No history yet. Entries logged against earlier dates show up here.
+        No history yet. Days you mark a state on show up here.
       </p>
 
       <div v-else class="space-y-4">
@@ -211,37 +211,14 @@ const pastDays = computed(() => (overview.value?.history || []).filter(day => !d
           </div>
           <div class="mt-3 space-y-2">
             <div
-              v-for="(entry, index) in day.entries"
+              v-for="entry in day.items"
               :key="entry.id"
               class="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-2"
             >
               <p class="min-w-0 flex-1 text-sm leading-6 text-ink">{{ entry.description }}</p>
-              <div class="flex shrink-0 items-center gap-2">
-                <span class="rounded-full px-3 py-1 text-xs font-semibold" :class="toneFor(entry.state)">
-                  {{ labelFor(entry.state) }}
-                </span>
-                <button
-                  type="button"
-                  class="rounded-full bg-surface-low px-2 py-1 text-xs font-semibold text-ink disabled:opacity-30"
-                  :disabled="index === 0"
-                  aria-label="Move up"
-                  title="Move up"
-                  @click="moveEntry(entry, 'up')"
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  class="rounded-full bg-surface-low px-2 py-1 text-xs font-semibold text-ink disabled:opacity-30"
-                  :disabled="index === day.entries.length - 1"
-                  aria-label="Move down"
-                  title="Move down"
-                  @click="moveEntry(entry, 'down')"
-                >
-                  ↓
-                </button>
-                <button class="text-xs font-semibold text-rose-700" @click="deleteEntry(entry)">Delete</button>
-              </div>
+              <span class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold" :class="toneFor(entry.state)">
+                {{ labelFor(entry.state) }}
+              </span>
             </div>
           </div>
         </div>

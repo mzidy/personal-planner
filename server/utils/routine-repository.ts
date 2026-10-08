@@ -1,6 +1,12 @@
-import { and, asc, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull } from 'drizzle-orm'
 import { format, parseISO } from 'date-fns'
-import type { RoutineDay, RoutineEntryRecord, RoutineOverview } from '~~/shared/types/routine'
+import type {
+  RoutineDay,
+  RoutineDayItem,
+  RoutineOverview,
+  RoutineState,
+  RoutineTemplateRecord
+} from '~~/shared/types/routine'
 import type { RoutineEntryInput, RoutineEntryPatch } from '~~/shared/schemas/routine'
 import { useDatabase } from '~~/server/database/client'
 import * as tables from '~~/server/database/schema'
@@ -22,77 +28,110 @@ function dayLabel(entryDate: string) {
 
 export function useRoutineRepository() {
   return {
-    async listEntries(userId: string): Promise<RoutineEntryRecord[]> {
+    /** Active routine items in display order. */
+    async listTemplates(userId: string): Promise<RoutineTemplateRecord[]> {
       const db = useDatabase()
       return (await db
         .select()
-        .from(tables.routineEntries)
-        .where(eq(tables.routineEntries.userId, userId))
-        .orderBy(
-          desc(tables.routineEntries.entryDate),
-          asc(tables.routineEntries.position),
-          asc(tables.routineEntries.createdAt)
-        )) as RoutineEntryRecord[]
+        .from(tables.routineTemplates)
+        .where(and(eq(tables.routineTemplates.userId, userId), isNull(tables.routineTemplates.archivedAt)))
+        .orderBy(asc(tables.routineTemplates.position), asc(tables.routineTemplates.createdAt))) as RoutineTemplateRecord[]
     },
 
-    /** A single day's entries in display order. */
-    async listDay(userId: string, entryDate: string): Promise<RoutineEntryRecord[]> {
-      const db = useDatabase()
-      return (await db
-        .select()
-        .from(tables.routineEntries)
-        .where(and(eq(tables.routineEntries.userId, userId), eq(tables.routineEntries.entryDate, entryDate)))
-        .orderBy(asc(tables.routineEntries.position), asc(tables.routineEntries.createdAt))) as RoutineEntryRecord[]
-    },
-
-    async createEntry(userId: string, input: RoutineEntryInput): Promise<RoutineEntryRecord> {
-      const entryDate = input.entryDate || todayKey()
-      const siblings = await this.listDay(userId, entryDate)
-      const nextPosition = siblings.reduce((max, item) => Math.max(max, item.position), -1) + 1
-
-      const record: RoutineEntryRecord = {
+    async createTemplate(userId: string, input: RoutineEntryInput): Promise<RoutineTemplateRecord> {
+      const siblings = await this.listTemplates(userId)
+      const record: RoutineTemplateRecord = {
         id: createId('routine'),
         userId,
         description: input.description,
-        entryDate,
-        state: input.state || 'planned',
-        position: nextPosition,
+        position: siblings.reduce((max, item) => Math.max(max, item.position), -1) + 1,
+        archivedAt: null,
         createdAt: nowIso(),
         updatedAt: nowIso()
       }
-      await useDatabase().insert(tables.routineEntries).values(record)
+      await useDatabase().insert(tables.routineTemplates).values(record)
+
+      // A state supplied at creation applies to the day it was created for.
+      if (input.state && input.state !== 'planned') {
+        await this.setState(userId, record.id, input.entryDate || todayKey(), input.state)
+      }
+
       return record
     },
 
-    /**
-     * Swap an entry with its neighbour inside the same day. Positions are renumbered
-     * first so days created before this column existed (all zeros) reorder correctly.
-     */
-    async moveEntry(
+    async updateTemplate(
       userId: string,
-      entryId: string,
-      direction: 'up' | 'down'
-    ): Promise<RoutineEntryRecord[] | null> {
+      templateId: string,
+      patch: RoutineEntryPatch
+    ): Promise<RoutineTemplateRecord | null> {
       const db = useDatabase()
-      const [entry] = (await db
+      const [record] = (await db
         .select()
-        .from(tables.routineEntries)
-        .where(and(eq(tables.routineEntries.userId, userId), eq(tables.routineEntries.id, entryId)))
-        .limit(1)) as RoutineEntryRecord[]
+        .from(tables.routineTemplates)
+        .where(and(eq(tables.routineTemplates.userId, userId), eq(tables.routineTemplates.id, templateId)))
+        .limit(1)) as RoutineTemplateRecord[]
 
-      if (!entry) {
+      if (!record) {
         return null
       }
 
-      const day = await this.listDay(userId, entry.entryDate)
-      const index = day.findIndex(item => item.id === entryId)
-      const targetIndex = direction === 'up' ? index - 1 : index + 1
-
-      if (index === -1 || targetIndex < 0 || targetIndex >= day.length) {
-        return day
+      // `state` on a patch is a per-day value, never part of the definition.
+      if (patch.state) {
+        await this.setState(userId, templateId, patch.entryDate || todayKey(), patch.state)
       }
 
-      const reordered = [...day]
+      if (patch.description === undefined) {
+        return record
+      }
+
+      const updated = { ...record, description: patch.description, updatedAt: nowIso() }
+      await db
+        .update(tables.routineTemplates)
+        .set({ description: updated.description, updatedAt: updated.updatedAt })
+        .where(eq(tables.routineTemplates.id, templateId))
+      return updated
+    },
+
+    /** Retire an item from future days; recorded history keeps it. */
+    async archiveTemplate(userId: string, templateId: string): Promise<RoutineTemplateRecord | null> {
+      const db = useDatabase()
+      const [record] = (await db
+        .select()
+        .from(tables.routineTemplates)
+        .where(and(eq(tables.routineTemplates.userId, userId), eq(tables.routineTemplates.id, templateId)))
+        .limit(1)) as RoutineTemplateRecord[]
+
+      if (!record) {
+        return null
+      }
+
+      const archivedAt = nowIso()
+      await db
+        .update(tables.routineTemplates)
+        .set({ archivedAt, updatedAt: archivedAt })
+        .where(eq(tables.routineTemplates.id, templateId))
+      return { ...record, archivedAt }
+    },
+
+    async moveTemplate(
+      userId: string,
+      templateId: string,
+      direction: 'up' | 'down'
+    ): Promise<RoutineTemplateRecord[] | null> {
+      const db = useDatabase()
+      const templates = await this.listTemplates(userId)
+      const index = templates.findIndex(item => item.id === templateId)
+
+      if (index === -1) {
+        return null
+      }
+
+      const targetIndex = direction === 'up' ? index - 1 : index + 1
+      if (targetIndex < 0 || targetIndex >= templates.length) {
+        return templates
+      }
+
+      const reordered = [...templates]
       const [moved] = reordered.splice(index, 1)
       reordered.splice(targetIndex, 0, moved!)
 
@@ -100,119 +139,116 @@ export function useRoutineRepository() {
       for (const [position, item] of reordered.entries()) {
         if (item.position !== position) {
           await db
-            .update(tables.routineEntries)
+            .update(tables.routineTemplates)
             .set({ position, updatedAt: timestamp })
-            .where(eq(tables.routineEntries.id, item.id))
+            .where(eq(tables.routineTemplates.id, item.id))
         }
       }
 
       return reordered.map((item, position) => ({ ...item, position }))
     },
 
-    async updateEntry(
-      userId: string,
-      entryId: string,
-      patch: RoutineEntryPatch
-    ): Promise<RoutineEntryRecord | null> {
+    /** Upsert one item's state for one day. */
+    async setState(userId: string, templateId: string, entryDate: string, state: RoutineState) {
       const db = useDatabase()
-      const [record] = (await db
+      const [existing] = await db
         .select()
-        .from(tables.routineEntries)
-        .where(and(eq(tables.routineEntries.userId, userId), eq(tables.routineEntries.id, entryId)))
-        .limit(1)) as RoutineEntryRecord[]
+        .from(tables.routineDayStates)
+        .where(
+          and(
+            eq(tables.routineDayStates.userId, userId),
+            eq(tables.routineDayStates.templateId, templateId),
+            eq(tables.routineDayStates.entryDate, entryDate)
+          )
+        )
+        .limit(1)
 
-      if (!record) {
-        return null
+      const timestamp = nowIso()
+
+      if (existing) {
+        await db
+          .update(tables.routineDayStates)
+          .set({ state, updatedAt: timestamp })
+          .where(eq(tables.routineDayStates.id, existing.id))
+        return
       }
 
-      const updated: RoutineEntryRecord = { ...record, ...patch, updatedAt: nowIso() }
-      await db
-        .update(tables.routineEntries)
-        .set({
-          description: updated.description,
-          entryDate: updated.entryDate,
-          state: updated.state,
-          updatedAt: updated.updatedAt
-        })
-        .where(eq(tables.routineEntries.id, entryId))
-
-      return updated
-    },
-
-    async deleteEntry(userId: string, entryId: string): Promise<RoutineEntryRecord | null> {
-      const db = useDatabase()
-      const [record] = (await db
-        .select()
-        .from(tables.routineEntries)
-        .where(and(eq(tables.routineEntries.userId, userId), eq(tables.routineEntries.id, entryId)))
-        .limit(1)) as RoutineEntryRecord[]
-
-      if (!record) {
-        return null
-      }
-
-      await db.delete(tables.routineEntries).where(eq(tables.routineEntries.id, entryId))
-      return record
+      await db.insert(tables.routineDayStates).values({
+        id: createId('rstate'),
+        userId,
+        templateId,
+        entryDate,
+        state,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      })
     },
 
     async getOverview(userId: string): Promise<RoutineOverview> {
-      const entries = await this.listEntries(userId)
+      const db = useDatabase()
       const today = todayKey()
+      const templates = await this.listTemplates(userId)
 
-      const byDay = new Map<string, RoutineEntryRecord[]>()
-      for (const entry of entries) {
-        const bucket = byDay.get(entry.entryDate)
+      const states = await db
+        .select()
+        .from(tables.routineDayStates)
+        .where(eq(tables.routineDayStates.userId, userId))
+        .orderBy(desc(tables.routineDayStates.entryDate))
+
+      const stateFor = new Map(states.map(row => [`${row.entryDate}|${row.templateId}`, row.state as RoutineState]))
+
+      const todayItems: RoutineDayItem[] = templates.map(template => ({
+        id: template.id,
+        templateId: template.id,
+        description: template.description,
+        position: template.position,
+        state: stateFor.get(`${today}|${template.id}`) || 'planned'
+      }))
+
+      // History covers past days that have at least one recorded state. Descriptions
+      // come from the template so archived items still read correctly.
+      const describe = new Map<string, string>()
+      const allTemplates = (await db
+        .select()
+        .from(tables.routineTemplates)
+        .where(eq(tables.routineTemplates.userId, userId))) as RoutineTemplateRecord[]
+      for (const template of allTemplates) {
+        describe.set(template.id, template.description)
+      }
+
+      const byDay = new Map<string, RoutineDayItem[]>()
+      for (const row of states) {
+        if (row.entryDate === today) {
+          continue
+        }
+        const item: RoutineDayItem = {
+          id: row.id,
+          templateId: row.templateId,
+          description: describe.get(row.templateId) || 'Removed item',
+          position: 0,
+          state: row.state as RoutineState
+        }
+        const bucket = byDay.get(row.entryDate)
         if (bucket) {
-          bucket.push(entry)
+          bucket.push(item)
         } else {
-          byDay.set(entry.entryDate, [entry])
+          byDay.set(row.entryDate, [item])
         }
       }
 
-      // Newest first, capped — this list is the history view.
       const history: RoutineDay[] = [...byDay.entries()]
         .sort((a, b) => b[0].localeCompare(a[0]))
         .slice(0, HISTORY_DAYS)
-        .map(([entryDate, dayEntries]) => ({
+        .map(([entryDate, items]) => ({
           entryDate,
           label: dayLabel(entryDate),
-          isToday: entryDate === today,
-          entries: dayEntries,
-          doneCount: dayEntries.filter(item => item.state === 'done').length,
-          totalCount: dayEntries.length
+          isToday: false,
+          items,
+          doneCount: items.filter(item => item.state === 'done').length,
+          totalCount: items.length
         }))
 
-      const doneCount = entries.filter(entry => entry.state === 'done').length
-
-      // Consecutive days ending today (or yesterday, if today is not logged yet)
-      // where every entry for that day was completed.
-      const fullyDone = new Set(
-        [...byDay.entries()]
-          .filter(([, dayEntries]) => dayEntries.length > 0 && dayEntries.every(item => item.state === 'done'))
-          .map(([entryDate]) => entryDate)
-      )
-
-      let streakDays = 0
-      const reference = parseISO(today)
-      for (let offset = fullyDone.has(today) ? 0 : 1; offset < 365; offset += 1) {
-        const key = format(new Date(reference.getTime() - offset * 86_400_000), 'yyyy-MM-dd')
-        if (fullyDone.has(key)) {
-          streakDays += 1
-        } else {
-          break
-        }
-      }
-
-      return {
-        today,
-        todayEntries: byDay.get(today) || [],
-        history,
-        totalEntries: entries.length,
-        doneCount,
-        completionRate: entries.length === 0 ? 0 : Math.round((doneCount / entries.length) * 100),
-        streakDays
-      }
+      return { today, todayItems, history }
     }
   }
 }
-

@@ -21,14 +21,42 @@ const pending = ref(false)
 const resetPending = ref(false)
 const errorMessage = ref('')
 
+const emailInput = ref<HTMLInputElement | null>(null)
+const passwordInput = ref<HTMLInputElement | null>(null)
+
+/**
+ * Safari (and some password managers) fill fields without firing the `input`
+ * event that v-model listens for, so the reactive state stays empty while the
+ * inputs visibly hold values — and the form submits blank credentials. Reading
+ * the elements at submit time is the reliable source of truth.
+ */
+function syncFromDom() {
+  const email = emailInput.value?.value
+  const password = passwordInput.value?.value
+
+  if (email && email !== form.email) {
+    form.email = email
+  }
+  if (password && password !== form.password) {
+    form.password = password
+  }
+}
+
 async function submit() {
+  syncFromDom()
+
+  if (!form.email.trim() || !form.password) {
+    errorMessage.value = 'Enter your email and password.'
+    return
+  }
+
   pending.value = true
   errorMessage.value = ''
 
   try {
     await $fetch('/api/auth/login', {
       method: 'POST',
-      body: form
+      body: { email: form.email.trim(), password: form.password }
     })
     await reloadNuxtApp({ path: '/dashboard', ttl: 0 })
   } catch (error) {
@@ -95,21 +123,25 @@ async function resetDemoWorkspace() {
       <label class="block space-y-2">
         <span class="text-sm font-medium text-ink">Email</span>
         <input
+          ref="emailInput"
           v-model="form.email"
           class="w-full rounded-2xl border border-outline/20 bg-surface px-4 py-3 outline-none transition focus:border-accent/20"
           type="email"
           autocomplete="email"
           required
+          @change="syncFromDom"
         />
       </label>
       <label class="block space-y-2">
         <span class="text-sm font-medium text-ink">Password</span>
         <input
+          ref="passwordInput"
           v-model="form.password"
           class="w-full rounded-2xl border border-outline/20 bg-surface px-4 py-3 outline-none transition focus:border-accent/20"
           type="password"
           autocomplete="current-password"
           required
+          @change="syncFromDom"
         />
       </label>
 

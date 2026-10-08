@@ -1,16 +1,69 @@
 <script setup lang="ts">
 import type { DashboardPayload } from '~~/shared/types/planner'
-import type { RoutineOverview, RoutineState } from '~~/shared/types/routine'
+import type { RoutineDayItem, RoutineOverview, RoutineState } from '~~/shared/types/routine'
+import type { StatsOverview } from '~~/shared/types/stats'
+import StatsWeightTrendChart from '~/components/stats/WeightTrendChart.vue'
 
 definePageMeta({
   middleware: 'protected'
 })
 
-const { currency, shortTime, percent, toIso } = useExecutiveFormat()
-const { data: dashboard, refresh } = await usePlannerFetch<DashboardPayload>('dashboard-page', '/api/dashboard')
-const { data: routine } = await usePlannerFetch<RoutineOverview>('dashboard-routine', '/api/routine/overview')
+const { data: dashboard } = await usePlannerFetch<DashboardPayload>('dashboard-page', '/api/dashboard')
+const { data: routine, refresh: refreshRoutine } = await usePlannerFetch<RoutineOverview>(
+  'dashboard-routine',
+  '/api/routine/overview'
+)
+const { data: stats } = await usePlannerFetch<StatsOverview>('dashboard-stats', '/api/stats/overview')
 
-const todayRoutine = computed(() => routine.value?.todayEntries || [])
+const todayRoutine = computed(() => routine.value?.todayItems || [])
+
+function formatDelta(value: number | null | undefined) {
+  if (value === null || value === undefined) {
+    return '—'
+  }
+  const sign = value > 0 ? '+' : ''
+  return `${sign}${value.toFixed(1)} kg`
+}
+
+function deltaTone(value: number | null | undefined) {
+  if (!value) {
+    return 'text-muted'
+  }
+  return value < 0 ? 'text-emerald-700' : 'text-rose-700'
+}
+
+const hoveredId = ref<string | null>(null)
+const pendingId = ref<string | null>(null)
+
+/** Clicking toggles between done and planned, so a mis-click is undoable. */
+function nextStateFor(state: RoutineState): RoutineState {
+  return state === 'done' ? 'planned' : 'done'
+}
+
+/** On hover the pill previews the state the click would apply. */
+function displayedState(item: RoutineDayItem): RoutineState {
+  return hoveredId.value === item.templateId ? nextStateFor(item.state) : item.state
+}
+
+async function toggleState(item: RoutineDayItem) {
+  if (pendingId.value) {
+    return
+  }
+
+  pendingId.value = item.templateId
+
+  try {
+    await $fetch(`/api/routine/entries/${item.templateId}`, {
+      method: 'PATCH',
+      body: { state: nextStateFor(item.state) }
+    })
+    await refreshRoutine()
+  } catch {
+    // Leave the pill as-is; the routine page is the place to recover.
+  } finally {
+    pendingId.value = null
+  }
+}
 
 const ROUTINE_TONES: Record<RoutineState, string> = {
   planned: 'bg-surface text-muted',
@@ -33,66 +86,11 @@ function routineTone(state: RoutineState) {
 function routineLabel(state: RoutineState) {
   return ROUTINE_LABELS[state] || state
 }
-
-const journalForm = reactive({
-  title: 'Quick diary',
-  body: '',
-  prompt: 'What deserves protection before the day fragments?',
-  focusTag: 'Reflection'
-})
-
-const focusForm = reactive({
-  title: 'Deep work block',
-  plannedMinutes: 60,
-  actualMinutes: 60,
-  startedAt: new Date().toISOString().slice(0, 16),
-  endedAt: new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16)
-})
-
-const busy = reactive({
-  journal: false,
-  focus: false
-})
-
-async function submitJournal() {
-  busy.journal = true
-  try {
-    await $fetch('/api/journal', {
-      method: 'POST',
-      body: journalForm
-    })
-    journalForm.body = ''
-    await refresh()
-  } finally {
-    busy.journal = false
-  }
-}
-
-async function submitFocusSession() {
-  busy.focus = true
-  try {
-    await $fetch('/api/focus-sessions', {
-      method: 'POST',
-      body: {
-        ...focusForm,
-        startedAt: toIso(focusForm.startedAt),
-        endedAt: toIso(focusForm.endedAt)
-      }
-    })
-    await refresh()
-  } finally {
-    busy.focus = false
-  }
-}
 </script>
 
 <template>
   <div v-if="dashboard" class="space-y-8">
-    <AppPageHero
-      eyebrow="Daily Command"
-      :title="dashboard.greeting"
-      :subtitle="`${dashboard.dateLabel}. Focus and finance remain visible without turning the workspace into a dashboard spreadsheet.`"
-    >
+    <AppPageHero eyebrow="Daily Command" :title="dashboard.greeting">
       <template #aside>
         <PanelCard class="min-w-[15rem]" tone="muted">
           <p class="eyebrow">Today</p>
@@ -109,182 +107,56 @@ async function submitFocusSession() {
               <span class="min-w-0 flex-1 truncate text-sm text-ink" :title="entry.description">
                 {{ entry.description }}
               </span>
-              <span
-                class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                :class="routineTone(entry.state)"
+              <button
+                type="button"
+                class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors disabled:opacity-60"
+                :class="routineTone(displayedState(entry))"
+                :disabled="pendingId === entry.templateId"
+                :title="`Mark as ${routineLabel(nextStateFor(entry.state)).toLowerCase()}`"
+                :aria-label="`${entry.description}: mark as ${routineLabel(nextStateFor(entry.state)).toLowerCase()}`"
+                @mouseenter="hoveredId = entry.templateId"
+                @mouseleave="hoveredId = null"
+                @focus="hoveredId = entry.templateId"
+                @blur="hoveredId = null"
+                @click="toggleState(entry)"
               >
-                {{ routineLabel(entry.state) }}
-              </span>
+                {{ routineLabel(displayedState(entry)) }}
+              </button>
             </div>
           </div>
         </PanelCard>
       </template>
     </AppPageHero>
 
-    <div class="grid gap-6 xl:grid-cols-[1.45fr_0.85fr]">
-      <PanelCard class="space-y-6">
-        <div class="flex items-center justify-between">
+    <PanelCard v-if="stats" class="space-y-4">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p class="eyebrow">Weight</p>
+          <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">Last 12 weeks</h2>
+        </div>
+        <div class="flex items-end gap-6">
           <div>
-            <p class="eyebrow">Day At A Glance</p>
-            <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">Protected schedule</h2>
+            <p class="eyebrow">Current</p>
+            <p class="mt-1 font-display text-2xl font-bold tracking-[-0.04em]">
+              {{ stats.currentWeightKg !== null ? `${stats.currentWeightKg.toFixed(1)} kg` : '—' }}
+            </p>
           </div>
-          <StatusPill :label="`${dashboard.agenda.length} blocks`" tone="mist" />
-        </div>
-
-        <div class="space-y-4">
-          <article
-            v-for="item in dashboard.agenda"
-            :key="item.id"
-            class="grid gap-2 rounded-soft bg-surface-low px-5 py-4 md:grid-cols-[5rem_1fr]"
-          >
-            <div class="text-sm font-semibold text-muted">{{ shortTime(item.startsAt) }}</div>
-            <div class="space-y-1">
-              <div class="flex flex-wrap items-center gap-2">
-                <p class="font-semibold text-ink">{{ item.title }}</p>
-                <StatusPill :label="item.kind" :tone="item.kind === 'meeting' ? 'ink' : 'teal'" />
-              </div>
-              <p class="text-sm leading-6 text-muted">{{ item.description }}</p>
-            </div>
-          </article>
-        </div>
-      </PanelCard>
-
-      <PanelCard tone="dark" class="space-y-6">
-        <div>
-          <p class="eyebrow text-white/55">AI Insights</p>
-          <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">Concierge live</h2>
-        </div>
-        <div class="rounded-soft bg-white/6 p-5 text-sm leading-7 text-white/80">
-          {{ dashboard.aiBrief.summary }}
-        </div>
-        <div class="grid gap-3 md:grid-cols-3 xl:grid-cols-1">
-          <div v-for="metric in dashboard.aiBrief.metrics" :key="metric.label" class="rounded-soft bg-white/6 px-4 py-4">
-            <p class="eyebrow text-white/45">{{ metric.label }}</p>
-            <p class="mt-2 text-xl font-semibold text-white">{{ metric.value }}</p>
-          </div>
-        </div>
-        <ul class="space-y-3 text-sm text-white/78">
-          <li v-for="item in dashboard.aiBrief.recommendations" :key="item" class="rounded-soft bg-white/6 px-4 py-3">
-            {{ item }}
-          </li>
-        </ul>
-      </PanelCard>
-    </div>
-
-    <div class="grid gap-6 xl:grid-cols-[1.1fr_1fr_0.8fr]">
-      <PanelCard class="space-y-4">
-        <div class="flex items-center justify-between">
           <div>
-            <p class="eyebrow">Personal Finance</p>
-            <h3 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">{{ currency(dashboard.finance.netWorth) }}</h3>
-          </div>
-          <StatusPill :label="`${dashboard.finance.budgetHealth} health`" tone="teal" />
-        </div>
-        <div class="grid gap-3 md:grid-cols-3">
-          <div class="rounded-soft bg-surface-low px-4 py-4">
-            <p class="eyebrow">Spend</p>
-            <p class="mt-2 text-xl font-semibold">{{ currency(dashboard.finance.monthlySpend) }}</p>
-          </div>
-          <div class="rounded-soft bg-surface-low px-4 py-4">
-            <p class="eyebrow">Income</p>
-            <p class="mt-2 text-xl font-semibold">{{ currency(dashboard.finance.monthlyIncome) }}</p>
-          </div>
-          <div class="rounded-soft bg-surface-low px-4 py-4">
-            <p class="eyebrow">Savings rate</p>
-            <p class="mt-2 text-xl font-semibold">{{ percent(dashboard.finance.savingsRate) }}</p>
+            <p class="eyebrow">12-week change</p>
+            <p class="mt-1 font-display text-2xl font-bold tracking-[-0.04em]" :class="deltaTone(stats.twelveWeekChangeKg)">
+              {{ formatDelta(stats.twelveWeekChangeKg) }}
+            </p>
           </div>
         </div>
-      </PanelCard>
+      </div>
 
-      <PanelCard class="space-y-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="eyebrow">Top Priorities</p>
-            <h3 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">Operational focus</h3>
-          </div>
-          <NuxtLink class="text-sm font-semibold text-muted hover:text-ink" to="/priorities">View all</NuxtLink>
-        </div>
-        <div class="space-y-3">
-          <article v-for="item in dashboard.objectives.slice(0, 3)" :key="item.id" class="rounded-soft bg-surface-low px-5 py-4">
-            <div class="flex flex-wrap items-center gap-2">
-              <p class="font-semibold text-ink">{{ item.title }}</p>
-              <StatusPill :label="item.urgency" :tone="item.urgency === 'critical' ? 'danger' : item.urgency === 'high' ? 'ink' : 'mist'" />
-            </div>
-            <p class="mt-2 text-sm leading-6 text-muted">{{ item.detail }}</p>
-          </article>
-        </div>
-      </PanelCard>
-
-      <PanelCard class="space-y-4">
-        <div>
-          <p class="eyebrow">Yearly Goals</p>
-          <h3 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">Visible progress</h3>
-        </div>
-        <div class="space-y-3">
-          <div v-for="goal in dashboard.goals" :key="goal.id" class="rounded-soft bg-surface-low px-4 py-4">
-            <div class="flex items-center justify-between text-sm">
-              <span class="font-semibold text-ink">{{ goal.title }}</span>
-              <span class="text-muted">{{ percent(goal.currentPercent) }}</span>
-            </div>
-            <div class="mt-3 h-2 rounded-full bg-white">
-              <div class="h-2 rounded-full bg-accent" :style="{ width: `${goal.currentPercent}%` }" />
-            </div>
-          </div>
-        </div>
-      </PanelCard>
-    </div>
-
-    <div class="grid gap-6 xl:grid-cols-[1fr_0.85fr]">
-      <PanelCard class="space-y-4">
-        <div>
-          <p class="eyebrow">Quick Diary</p>
-          <h3 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">Capture signal before it evaporates.</h3>
-        </div>
-        <form class="space-y-3" @submit.prevent="submitJournal">
-          <input v-model="journalForm.title" class="w-full rounded-2xl bg-surface-low px-4 py-3 outline-none" type="text" />
-          <textarea
-            v-model="journalForm.body"
-            class="min-h-[9rem] w-full rounded-2xl bg-surface-low px-4 py-3 outline-none"
-            :placeholder="dashboard.quickJournalPrompt"
-          />
-          <button class="rounded-full bg-ink px-5 py-3 font-semibold text-white" :disabled="busy.journal">
-            {{ busy.journal ? 'Storing...' : 'Store reflection' }}
-          </button>
-        </form>
-      </PanelCard>
-
-      <PanelCard class="space-y-4">
-        <div>
-          <p class="eyebrow">Focus Tracking</p>
-          <h3 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">Deep work pulse</h3>
-        </div>
-
-        <div class="grid gap-3 md:grid-cols-3">
-          <div class="rounded-soft bg-surface-low px-4 py-4">
-            <p class="eyebrow">Actual</p>
-            <p class="mt-2 text-xl font-semibold">{{ dashboard.focus.actualMinutes }} min</p>
-          </div>
-          <div class="rounded-soft bg-surface-low px-4 py-4">
-            <p class="eyebrow">Planned</p>
-            <p class="mt-2 text-xl font-semibold">{{ dashboard.focus.plannedMinutes }} min</p>
-          </div>
-          <div class="rounded-soft bg-surface-low px-4 py-4">
-            <p class="eyebrow">Best window</p>
-            <p class="mt-2 text-xl font-semibold">{{ dashboard.focus.bestWindow }}</p>
-          </div>
-        </div>
-
-        <form class="grid gap-3 md:grid-cols-2" @submit.prevent="submitFocusSession">
-          <input v-model="focusForm.title" class="rounded-2xl bg-surface-low px-4 py-3 outline-none md:col-span-2" type="text" />
-          <input v-model.number="focusForm.plannedMinutes" class="rounded-2xl bg-surface-low px-4 py-3 outline-none" type="number" min="15" />
-          <input v-model.number="focusForm.actualMinutes" class="rounded-2xl bg-surface-low px-4 py-3 outline-none" type="number" min="0" />
-          <input v-model="focusForm.startedAt" class="rounded-2xl bg-surface-low px-4 py-3 outline-none" type="datetime-local" />
-          <input v-model="focusForm.endedAt" class="rounded-2xl bg-surface-low px-4 py-3 outline-none" type="datetime-local" />
-          <button class="rounded-full bg-surface-low px-5 py-3 text-left font-semibold text-ink md:col-span-2">
-            {{ busy.focus ? 'Logging session...' : 'Log focus session' }}
-          </button>
-        </form>
-      </PanelCard>
-    </div>
+      <StatsWeightTrendChart compact :series="stats.series" :target-weight-kg="stats.profile?.targetWeightKg">
+        <template #empty>
+          No weigh-ins yet — log one under
+          <NuxtLink to="/stats" class="font-semibold text-accent">Personal stats</NuxtLink>
+          and the trend appears here.
+        </template>
+      </StatsWeightTrendChart>
+    </PanelCard>
   </div>
 </template>

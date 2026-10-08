@@ -19,7 +19,9 @@ const TABS = [
   { label: 'Overview', to: '/investments' },
   { label: 'ETF', to: '/investments/etf' },
   { label: 'Stocks', to: '/investments/stocks' },
-  { label: 'Options', to: '/investments/options' }
+  { label: 'Options', to: '/investments/options' },
+  { label: 'Analysis', to: '/investments/analysis' },
+  { label: 'Calculator', to: '/investments/calculator' }
 ]
 
 const route = useRoute()

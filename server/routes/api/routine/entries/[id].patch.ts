@@ -3,12 +3,13 @@ import { useRoutineRepository } from '~~/server/utils/routine-repository'
 
 export default defineEventHandler(async event => {
   const user = await requireAppUser(event)
-  const entryId = getRouterParam(event, 'id') || ''
+  const templateId = getRouterParam(event, 'id') || ''
   const body = routineEntryPatchSchema.parse(await readBody(event))
-  const record = await useRoutineRepository().updateEntry(user.id, entryId, body)
+  // `state` is recorded against a day; `description` edits the recurring item.
+  const record = await useRoutineRepository().updateTemplate(user.id, templateId, body)
 
   if (!record) {
-    throw createError({ statusCode: 404, statusMessage: 'Routine entry not found.' })
+    throw createError({ statusCode: 404, statusMessage: 'Routine item not found.' })
   }
 
   return record

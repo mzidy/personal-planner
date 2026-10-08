@@ -3,6 +3,8 @@ import {
   BookOpen,
   GraduationCap,
   CalendarDays,
+  Calculator,
+  Compass,
   HeartPulse,
   ShoppingCart,
   CandlestickChart,
@@ -11,6 +13,8 @@ import {
   PiggyBank,
   ReceiptText,
   Repeat,
+  Scale,
+  Sprout,
   TrendingUp,
   Wallet,
   Target,
@@ -20,7 +24,6 @@ import {
 export function useNavigation() {
   return [
     { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
-    { label: 'Calendar', to: '/calendar', icon: CalendarDays },
     {
       label: 'Finance',
       to: '/finance',
@@ -33,22 +36,41 @@ export function useNavigation() {
         { label: 'Investing', to: '/finance/investing', icon: TrendingUp },
         { label: 'Income', to: '/finance/income', icon: Landmark },
         { label: 'Expenses', to: '/finance/expenses', icon: ReceiptText },
-        { label: 'Investments', to: '/investments', icon: CandlestickChart, match: ['/investments'] }
+        { label: 'Portfolio management', to: '/finance/portfolio', icon: Scale },
+        { label: 'Investments', to: '/investments', icon: CandlestickChart, match: ['/investments'] },
+        { label: 'Investment calculator', to: '/investments/calculator', icon: Calculator }
       ]
     },
-    { label: 'Priorities', to: '/priorities', icon: Target },
-    { label: 'Diary', to: '/diary', icon: BookOpen },
+    {
+      label: 'Tasks',
+      to: '/priorities',
+      icon: Target,
+      children: [
+        { label: 'Overview', to: '/priorities', icon: Target },
+        { label: 'Daily routine', to: '/priorities/routine', icon: Repeat }
+      ]
+    },
     {
       label: 'Goals',
       to: '/goals',
       icon: Trophy,
       children: [
         { label: 'Overview', to: '/goals', icon: Trophy },
-        { label: 'Daily routine', to: '/goals/routine', icon: Repeat }
+        { label: 'Habit guide', to: '/goals/guide', icon: Compass }
       ]
     },
-    { label: 'Personal stats', to: '/stats', icon: HeartPulse },
+    {
+      label: 'Personal stats',
+      to: '/stats',
+      icon: HeartPulse,
+      children: [
+        { label: 'Overview', to: '/stats', icon: HeartPulse },
+        { label: 'Personal Growth', to: '/stats/growth', icon: Sprout }
+      ]
+    },
     { label: 'Shopping list', to: '/shopping', icon: ShoppingCart },
+    { label: 'Calendar', to: '/calendar', icon: CalendarDays },
+    { label: 'Diary', to: '/diary', icon: BookOpen },
     { label: 'AI Assistant', to: '/assistant', icon: Bot, accent: true },
     { label: 'AI Learning', to: '/learning', icon: GraduationCap, accent: true }
   ]
