@@ -3,6 +3,8 @@ import type { NoteRecord } from '~~/shared/types/notes'
 import { detectTable, linesFromBlocks, tableToText } from '~~/shared/utils/ocr-table'
 import DiaryTabs from '~/components/diary/DiaryTabs.vue'
 
+const { exportXlsx, exportPdf } = useNoteExport()
+
 definePageMeta({
   middleware: 'protected'
 })
@@ -24,6 +26,34 @@ const errorMessage = ref('')
 const savedMessage = ref('')
 
 const canSave = computed(() => Boolean(extracted.value.trim()) && !reading.value && !saving.value)
+
+/** Exporting works on what is on screen, so it needs no saved note. */
+const canExport = computed(() => Boolean(extracted.value.trim()) && !reading.value)
+const exportingFormat = ref<'xlsx' | 'pdf' | null>(null)
+
+async function exportNow(format: 'xlsx' | 'pdf') {
+  if (!canExport.value || exportingFormat.value) {
+    return
+  }
+
+  exportingFormat.value = format
+  errorMessage.value = ''
+
+  const useTable = Boolean(tableRows.value && keepTable.value)
+  const payload = {
+    rows: useTable ? tableRows.value! : extracted.value.split('\n').map(line => [line]),
+    label: fileName.value || 'import',
+    isTable: useTable
+  }
+
+  try {
+    await (format === 'xlsx' ? exportXlsx(payload) : exportPdf(payload))
+  } catch {
+    errorMessage.value = `Could not build the ${format.toUpperCase()} file.`
+  } finally {
+    exportingFormat.value = null
+  }
+}
 
 /** Object URLs are only freed here; the image itself never leaves the browser. */
 function releasePreview() {
@@ -284,13 +314,30 @@ async function saveNote() {
           <NuxtLink to="/diary/notes" class="font-semibold underline">See it in Notes</NuxtLink>.
         </p>
 
-        <button
-          class="w-full rounded-full bg-ink px-5 py-3 font-semibold text-white disabled:opacity-50"
-          :disabled="!canSave"
-          @click="saveNote"
-        >
-          {{ saving ? 'Saving…' : 'Save as note' }}
-        </button>
+        <div class="flex flex-wrap gap-3">
+          <button
+            class="flex-1 rounded-full bg-ink px-5 py-3 font-semibold text-white disabled:opacity-50"
+            :disabled="!canSave"
+            @click="saveNote"
+          >
+            {{ saving ? 'Saving…' : 'Save as note' }}
+          </button>
+          <button
+            class="rounded-full bg-surface-low px-5 py-3 font-semibold text-ink disabled:opacity-40"
+            :disabled="!canExport || exportingFormat !== null"
+            @click="exportNow('xlsx')"
+          >
+            {{ exportingFormat === 'xlsx' ? '…' : 'Excel' }}
+          </button>
+          <button
+            class="rounded-full bg-surface-low px-5 py-3 font-semibold text-ink disabled:opacity-40"
+            :disabled="!canExport || exportingFormat !== null"
+            @click="exportNow('pdf')"
+          >
+            {{ exportingFormat === 'pdf' ? '…' : 'PDF' }}
+          </button>
+        </div>
+        <p class="text-xs text-muted">Export takes what is on screen — saving it as a note is optional.</p>
       </PanelCard>
     </div>
   </div>
