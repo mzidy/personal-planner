@@ -2,6 +2,8 @@
 import type { NoteRecord, NotesPayload } from '~~/shared/types/notes'
 import DiaryTabs from '~/components/diary/DiaryTabs.vue'
 
+const { toXlsx, toPdf } = useNoteExport()
+
 definePageMeta({
   middleware: 'protected'
 })
@@ -64,6 +66,25 @@ async function deleteNote(note: NoteRecord) {
     await refresh()
   } catch {
     errorMessage.value = 'Unable to delete that note.'
+  }
+}
+
+const exporting = ref<string | null>(null)
+
+async function exportNote(note: NoteRecord, format: 'xlsx' | 'pdf') {
+  if (exporting.value) {
+    return
+  }
+
+  exporting.value = `${note.id}:${format}`
+  errorMessage.value = ''
+
+  try {
+    await (format === 'xlsx' ? toXlsx(note) : toPdf(note))
+  } catch {
+    errorMessage.value = `Could not build the ${format.toUpperCase()} file.`
+  } finally {
+    exporting.value = null
   }
 }
 
@@ -154,6 +175,7 @@ function preview(body: string) {
                   :label="note.source === 'import' ? 'Image' : 'Typed'"
                   :tone="note.source === 'import' ? 'teal' : 'mist'"
                 />
+                <StatusPill v-if="note.tableRows?.length" label="Table" tone="ink" />
                 <span class="text-sm text-muted">{{ stamp(note.createdAt) }}</span>
                 <span v-if="note.sourceName" class="truncate text-xs text-muted" :title="note.sourceName">
                   {{ note.sourceName }}
@@ -163,13 +185,29 @@ function preview(body: string) {
                 {{ preview(note.body) }}
               </p>
             </button>
-            <div class="flex shrink-0 items-center gap-3">
+            <div class="flex shrink-0 flex-wrap items-center gap-3">
               <button
                 type="button"
                 class="text-xs font-semibold text-ink"
                 @click="expandedId = expandedId === note.id ? null : note.id"
               >
                 {{ expandedId === note.id ? 'Hide' : 'Open' }}
+              </button>
+              <button
+                type="button"
+                class="text-xs font-semibold text-muted hover:text-ink disabled:opacity-50"
+                :disabled="exporting === `${note.id}:xlsx`"
+                @click="exportNote(note, 'xlsx')"
+              >
+                {{ exporting === `${note.id}:xlsx` ? '…' : 'Excel' }}
+              </button>
+              <button
+                type="button"
+                class="text-xs font-semibold text-muted hover:text-ink disabled:opacity-50"
+                :disabled="exporting === `${note.id}:pdf`"
+                @click="exportNote(note, 'pdf')"
+              >
+                {{ exporting === `${note.id}:pdf` ? '…' : 'PDF' }}
               </button>
               <button
                 type="button"
@@ -183,10 +221,29 @@ function preview(body: string) {
             </div>
           </div>
 
-          <p
-            v-if="expandedId === note.id"
-            class="mt-3 whitespace-pre-wrap border-t border-outline/10 pt-3 text-sm leading-7 text-ink"
-          >{{ note.body }}</p>
+          <div v-if="expandedId === note.id" class="mt-3 border-t border-outline/10 pt-3">
+            <div v-if="note.tableRows?.length" class="overflow-x-auto">
+              <table class="w-full min-w-[20rem] text-sm">
+                <tbody>
+                  <tr
+                    v-for="(row, rowIndex) in note.tableRows"
+                    :key="rowIndex"
+                    class="border-b border-outline/10 last:border-0"
+                  >
+                    <td
+                      v-for="(cell, cellIndex) in row"
+                      :key="cellIndex"
+                      class="px-3 py-2 align-top"
+                      :class="rowIndex === 0 ? 'font-semibold text-ink' : 'text-muted'"
+                    >
+                      {{ cell }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p v-else class="whitespace-pre-wrap text-sm leading-7 text-ink">{{ note.body }}</p>
+          </div>
         </article>
       </div>
     </PanelCard>

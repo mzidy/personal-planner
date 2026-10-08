@@ -6,6 +6,7 @@ export interface NoteRecord {
   body: string
   source: NoteSource
   sourceName: string
+  tableRows: string[][] | null
   createdAt: string
   updatedAt: string
 }
