@@ -97,6 +97,73 @@ const sectionSubtitle = computed(() => {
   }
 })
 
+const INVESTMENT_CURRENCIES = ['USD', 'EUR', 'GBP', 'CHF', 'JPY']
+
+/**
+ * Creates a real investment position, so an entry made here also shows up under
+ * Investments and is counted by Portfolio management — rather than living in a
+ * second, parallel ledger.
+ */
+const investment = reactive({
+  kind: 'stock' as 'etf' | 'stock' | 'option',
+  symbol: '',
+  lot: '',
+  price: '',
+  openedAt: '',
+  currency: 'USD'
+})
+
+const savingInvestment = ref(false)
+const investmentError = ref('')
+const investmentSaved = ref('')
+
+const investmentValid = computed(
+  () => Boolean(investment.symbol.trim()) && Number(investment.lot) > 0 && Number(investment.price) >= 0
+)
+
+onMounted(() => {
+  if (!investment.openedAt) {
+    investment.openedAt = new Date().toISOString().slice(0, 10)
+  }
+})
+
+async function addInvestment() {
+  if (!investmentValid.value || savingInvestment.value) {
+    return
+  }
+
+  savingInvestment.value = true
+  investmentError.value = ''
+  investmentSaved.value = ''
+
+  try {
+    await $fetch('/api/investments/positions', {
+      method: 'POST',
+      body: {
+        kind: investment.kind,
+        symbol: investment.symbol.trim().toUpperCase(),
+        quantity: Number(investment.lot),
+        unitCost: Number(investment.price),
+        currency: investment.currency,
+        openedAt: investment.openedAt || null
+      }
+    })
+
+    investmentSaved.value = `${investment.symbol.trim().toUpperCase()} added.`
+    investment.symbol = ''
+    investment.lot = ''
+    investment.price = ''
+  } catch (error) {
+    const detail =
+      error && typeof error === 'object' && 'data' in error
+        ? (error as { data?: { statusMessage?: string; message?: string } }).data
+        : null
+    investmentError.value = detail?.statusMessage || detail?.message || 'That investment could not be saved.'
+  } finally {
+    savingInvestment.value = false
+  }
+}
+
 const form = reactive({
   accountId: '',
   categoryId: '',
@@ -190,7 +257,108 @@ async function createTransaction() {
       </p>
     </PanelCard>
 
-    <div class="grid gap-6 xl:grid-cols-[1.3fr_0.8fr]">
+    <!-- Investing shows only this: the generic ledger cards belong to the other sections. -->
+    <PanelCard v-if="section === 'investing'" class="space-y-4">
+      <div>
+        <p class="eyebrow">New transaction</p>
+        <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">Add an investment</h2>
+        <p class="mt-1 text-sm text-muted">
+          Saved as a position, so it also appears under
+          <NuxtLink to="/investments" class="font-semibold text-accent">Investments</NuxtLink>.
+        </p>
+      </div>
+
+      <form class="space-y-3" @submit.prevent="addInvestment">
+        <div class="grid gap-3 md:grid-cols-2">
+          <label class="block">
+            <span class="eyebrow">Ticker</span>
+            <input
+              v-model="investment.symbol"
+              class="mt-2 w-full rounded-2xl bg-surface-low px-4 py-3 uppercase outline-none"
+              type="text"
+              maxlength="24"
+              placeholder="VWCE"
+              autocapitalize="characters"
+              spellcheck="false"
+              required
+            />
+          </label>
+          <label class="block">
+            <span class="eyebrow">Type</span>
+            <select
+              v-model="investment.kind"
+              class="mt-2 w-full rounded-2xl bg-surface-low px-4 py-3 outline-none"
+            >
+              <option value="stock">Stock</option>
+              <option value="etf">ETF</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="grid gap-3 md:grid-cols-2">
+          <label class="block">
+            <span class="eyebrow">Lot</span>
+            <input
+              v-model="investment.lot"
+              class="mt-2 w-full rounded-2xl bg-surface-low px-4 py-3 outline-none"
+              type="number"
+              step="any"
+              min="0"
+              placeholder="10"
+              required
+            />
+          </label>
+          <label class="block">
+            <span class="eyebrow">Price per unit</span>
+            <input
+              v-model="investment.price"
+              class="mt-2 w-full rounded-2xl bg-surface-low px-4 py-3 outline-none"
+              type="number"
+              step="any"
+              min="0"
+              placeholder="118.40"
+              required
+            />
+          </label>
+        </div>
+
+        <div class="grid gap-3 md:grid-cols-2">
+          <label class="block">
+            <span class="eyebrow">Date</span>
+            <input
+              v-model="investment.openedAt"
+              class="mt-2 w-full rounded-2xl bg-surface-low px-4 py-3 outline-none"
+              type="date"
+            />
+          </label>
+          <label class="block">
+            <span class="eyebrow">Currency</span>
+            <select
+              v-model="investment.currency"
+              class="mt-2 w-full rounded-2xl bg-surface-low px-4 py-3 outline-none"
+            >
+              <option v-for="code in INVESTMENT_CURRENCIES" :key="code" :value="code">{{ code }}</option>
+            </select>
+          </label>
+        </div>
+
+        <p v-if="investmentError" class="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {{ investmentError }}
+        </p>
+        <p v-else-if="investmentSaved" class="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {{ investmentSaved }}
+        </p>
+
+        <button
+          class="w-full rounded-full bg-ink px-5 py-3 font-semibold text-white disabled:opacity-50"
+          :disabled="savingInvestment || !investmentValid"
+        >
+          {{ savingInvestment ? 'Saving…' : 'Add investment' }}
+        </button>
+      </form>
+    </PanelCard>
+
+    <div v-if="section !== 'investing'" class="grid gap-6 xl:grid-cols-[1.3fr_0.8fr]">
       <PanelCard class="space-y-4">
         <div class="grid gap-4 md:grid-cols-4">
           <div class="rounded-soft bg-surface-low px-4 py-4">
@@ -213,7 +381,7 @@ async function createTransaction() {
 
         <div class="grid gap-4 md:grid-cols-2">
           <div class="rounded-soft bg-surface-low px-5 py-5">
-            <p class="eyebrow">{{ section === 'investing' ? 'Investment Accounts' : 'Accounts' }}</p>
+            <p class="eyebrow">Accounts</p>
             <div class="mt-4 space-y-3">
               <div v-for="account in visibleAccounts" :key="account.id" class="flex items-center justify-between gap-4">
                 <div>
@@ -225,15 +393,7 @@ async function createTransaction() {
             </div>
           </div>
           <div class="rounded-soft bg-surface-low px-5 py-5">
-            <p class="eyebrow">
-              {{
-                section === 'income'
-                  ? 'Income Categories'
-                  : section === 'investing'
-                    ? 'Investment Flows'
-                    : 'Category Budgets'
-              }}
-            </p>
+            <p class="eyebrow">{{ section === 'income' ? 'Income Categories' : 'Category Budgets' }}</p>
             <div class="mt-4 space-y-3">
               <div v-for="category in visibleCategories" :key="category.id" class="flex items-center justify-between gap-4">
                 <div>
@@ -267,7 +427,7 @@ async function createTransaction() {
       </PanelCard>
     </div>
 
-    <div class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+    <div v-if="section !== 'investing'" class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
       <PanelCard class="space-y-4">
         <div>
           <p class="eyebrow">Ledger Activities</p>
@@ -277,9 +437,7 @@ async function createTransaction() {
                 ? 'Income ledger'
                 : section === 'expenses'
                   ? 'Expense ledger'
-                  : section === 'investing'
-                    ? 'Investment activity'
-                    : 'Recent transactions'
+                  : 'Recent transactions'
             }}
           </h2>
         </div>
