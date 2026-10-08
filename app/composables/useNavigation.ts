@@ -3,6 +3,8 @@ import {
   BookOpen,
   GraduationCap,
   CalendarDays,
+  ImageUp,
+  StickyNote,
   Calculator,
   Compass,
   HeartPulse,
@@ -70,7 +72,16 @@ export function useNavigation() {
     },
     { label: 'Shopping list', to: '/shopping', icon: ShoppingCart },
     { label: 'Calendar', to: '/calendar', icon: CalendarDays },
-    { label: 'Diary', to: '/diary', icon: BookOpen },
+    {
+      label: 'Diary',
+      to: '/diary',
+      icon: BookOpen,
+      children: [
+        { label: 'Overview', to: '/diary', icon: BookOpen },
+        { label: 'Notes', to: '/diary/notes', icon: StickyNote },
+        { label: 'Import', to: '/diary/import', icon: ImageUp }
+      ]
+    },
     { label: 'AI Assistant', to: '/assistant', icon: Bot, accent: true },
     { label: 'AI Learning', to: '/learning', icon: GraduationCap, accent: true }
   ]

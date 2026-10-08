@@ -374,6 +374,22 @@ export const habitPlans = sqliteTable('habit_plans', {
   updatedAt: text('updated_at').notNull()
 })
 
+/**
+ * A free-text note. Notes imported from an image keep only the extracted text —
+ * the image itself is never uploaded or stored, it is read in the browser.
+ */
+export const notes = sqliteTable('notes', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  body: text('body').notNull(),
+  /** 'manual' when typed, 'import' when read out of an image. */
+  source: text('source').notNull().default('manual'),
+  /** The original file name, kept only as a label for an imported note. */
+  sourceName: text('source_name').notNull().default(''),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull()
+})
+
 export const auditEvents = sqliteTable('audit_events', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
