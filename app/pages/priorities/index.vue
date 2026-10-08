@@ -97,6 +97,45 @@ async function markDone(id: string) {
   await moveObjective(id, 'done')
 }
 
+/**
+ * Deleting is irreversible and the button sits next to "Mark done", so the
+ * first click only arms it; the second one actually deletes.
+ */
+const pendingDeleteId = ref<string | null>(null)
+let disarmTimer: ReturnType<typeof setTimeout> | null = null
+
+function armDelete(id: string) {
+  pendingDeleteId.value = id
+  if (disarmTimer) clearTimeout(disarmTimer)
+  disarmTimer = setTimeout(() => {
+    pendingDeleteId.value = null
+  }, 4000)
+}
+
+function disarmDelete() {
+  if (disarmTimer) clearTimeout(disarmTimer)
+  pendingDeleteId.value = null
+}
+
+onBeforeUnmount(disarmDelete)
+
+async function deleteObjective(id: string) {
+  if (pendingDeleteId.value !== id) {
+    armDelete(id)
+    return
+  }
+
+  disarmDelete()
+  errorMessage.value = ''
+
+  try {
+    await $fetch(`/api/priorities/${id}`, { method: 'DELETE' })
+    await refresh()
+  } catch (error) {
+    await handlePriorityError(error, 'Unable to delete that objective.')
+  }
+}
+
 function dragStart(id: string) {
   draggedId.value = id
 }
@@ -182,9 +221,20 @@ async function dropOnLane(status: ObjectiveStatus) {
                 <StatusPill :label="item.urgency" :tone="item.urgency === 'critical' ? 'danger' : item.urgency === 'high' ? 'ink' : 'mist'" />
               </div>
               <p class="mt-2 text-sm leading-6 text-muted">{{ item.detail }}</p>
-              <div class="mt-4 flex items-center justify-between text-sm text-muted">
+              <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted">
                 <span>{{ item.focusWindow }}</span>
-                <button class="font-semibold text-ink" @click="markDone(item.id)">Mark done</button>
+                <div class="flex items-center gap-4">
+                  <button class="font-semibold text-ink" @click="markDone(item.id)">Mark done</button>
+                  <button
+                    class="font-semibold transition-colors"
+                    :class="pendingDeleteId === item.id ? 'text-rose-700' : 'text-muted hover:text-rose-700'"
+                    :aria-label="pendingDeleteId === item.id ? `Confirm deleting ${item.title}` : `Delete ${item.title}`"
+                    @click="deleteObjective(item.id)"
+                    @blur="pendingDeleteId === item.id && disarmDelete()"
+                  >
+                    {{ pendingDeleteId === item.id ? 'Confirm?' : 'Delete' }}
+                  </button>
+                </div>
               </div>
             </article>
           </div>
