@@ -53,5 +53,20 @@ try {
   }
 
   console.error('\nMigration failed:', message)
+
+  /*
+   * libSQL wraps the real reason in `cause`, sometimes more than one level
+   * deep. Printing only `message` leaves you staring at the failed SQL with no
+   * idea why it was rejected, which is exactly what happened the first time
+   * this failed.
+   */
+  let cause = error?.cause
+  let depth = 0
+  while (cause && depth < 5) {
+    console.error(`  caused by: ${cause.code ? `[${cause.code}] ` : ''}${cause.message || cause}`)
+    cause = cause.cause
+    depth += 1
+  }
+
   process.exit(1)
 }
