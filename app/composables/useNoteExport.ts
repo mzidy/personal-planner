@@ -1,27 +1,31 @@
 import type { NoteRecord } from '~~/shared/types/notes'
 
 /**
- * Exports a note as a spreadsheet or a PDF.
+ * Exports a table or a block of text as a spreadsheet or a PDF.
+ *
+ * The exporters take rows rather than a saved note, so the Import page can hand
+ * over what it has just read from an image without saving it first.
  *
  * Both libraries are imported where they are used rather than at the top of the
- * module: together they are over a megabyte, and most visits to Notes never
- * export anything. Keeping them out of the page bundle costs one dynamic import
- * at click time.
+ * module: together they are over a megabyte, and most visits never export
+ * anything. That costs one dynamic import at click time.
  */
-
-/** A safe, recognisable file stem for a note. */
-function fileStem(note: NoteRecord) {
-  const stamp = note.createdAt.slice(0, 16).replace(/[:T]/g, '-')
-  const label = (note.sourceName || 'note').replace(/\.[^.]+$/, '')
-  return `${label.replace(/[^\w\-]+/g, '-').replace(/^-+|-+$/g, '') || 'note'}-${stamp}`
+export interface ExportPayload {
+  /** Rows of cells. A single cell per row is treated as plain text. */
+  rows: string[][]
+  /** Shown as the PDF title and used for the file name. */
+  label: string
+  /** ISO timestamp shown under the title; defaults to now. */
+  createdAt?: string
+  /** True when the first row should be rendered as a header. */
+  isTable: boolean
 }
 
-/** Rows for export: the detected table, or the text split into lines. */
-export function exportRows(note: NoteRecord): string[][] {
-  if (note.tableRows?.length) {
-    return note.tableRows
-  }
-  return note.body.split('\n').map(line => [line])
+/** A safe, recognisable file stem. */
+function fileStem(label: string, createdAt: string) {
+  const stamp = createdAt.slice(0, 16).replace(/[:T]/g, '-')
+  const stem = label.replace(/\.[^.]+$/, '').replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '')
+  return `${stem || 'note'}-${stamp}`
 }
 
 function download(blob: Blob, filename: string) {
@@ -35,59 +39,73 @@ function download(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-export function useNoteExport() {
+/** Turns a saved note into an export payload. */
+export function payloadFromNote(note: NoteRecord): ExportPayload {
   return {
-    async toXlsx(note: NoteRecord) {
-      const XLSX = await import('xlsx')
-      const sheet = XLSX.utils.aoa_to_sheet(exportRows(note))
-      const book = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(book, sheet, 'Note')
+    rows: note.tableRows?.length ? note.tableRows : note.body.split('\n').map(line => [line]),
+    label: note.sourceName || 'note',
+    createdAt: note.createdAt,
+    isTable: Boolean(note.tableRows?.length)
+  }
+}
 
-      const buffer = XLSX.write(book, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer
-      download(
-        new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-        `${fileStem(note)}.xlsx`
-      )
-    },
+export function useNoteExport() {
+  async function exportXlsx(payload: ExportPayload) {
+    const XLSX = await import('xlsx')
+    const sheet = XLSX.utils.aoa_to_sheet(payload.rows)
+    const book = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(book, sheet, 'Note')
 
-    async toPdf(note: NoteRecord) {
-      const [{ jsPDF }, autoTableModule] = await Promise.all([import('jspdf'), import('jspdf-autotable')])
-      const autoTable = autoTableModule.default
+    const buffer = XLSX.write(book, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer
+    download(
+      new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+      `${fileStem(payload.label, payload.createdAt || new Date().toISOString())}.xlsx`
+    )
+  }
 
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
-      const stamp = new Date(note.createdAt).toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+  async function exportPdf(payload: ExportPayload) {
+    const [{ jsPDF }, autoTableModule] = await Promise.all([import('jspdf'), import('jspdf-autotable')])
+    const autoTable = autoTableModule.default
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
+    const createdAt = payload.createdAt || new Date().toISOString()
+    const stamp = new Date(createdAt).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+
+    doc.setFontSize(14)
+    doc.text(payload.label || 'Note', 40, 48)
+    doc.setFontSize(9)
+    doc.setTextColor(120)
+    doc.text(stamp, 40, 64)
+    doc.setTextColor(0)
+
+    if (payload.isTable && payload.rows.length) {
+      // The first row is treated as a header; that is what a recognised table
+      // almost always has, and it costs nothing when it does not.
+      autoTable(doc, {
+        head: [payload.rows[0]!],
+        body: payload.rows.slice(1),
+        startY: 84,
+        styles: { fontSize: 9, cellPadding: 5 },
+        headStyles: { fillColor: [27, 27, 29] }
       })
-
-      doc.setFontSize(14)
-      doc.text(note.sourceName || 'Note', 40, 48)
-      doc.setFontSize(9)
-      doc.setTextColor(120)
-      doc.text(stamp, 40, 64)
-      doc.setTextColor(0)
-
-      const rows = exportRows(note)
-
-      if (note.tableRows?.length) {
-        // First row is treated as a header; that is what a recognised table
-        // almost always has, and it costs nothing when it does not.
-        autoTable(doc, {
-          head: [rows[0]!],
-          body: rows.slice(1),
-          startY: 84,
-          styles: { fontSize: 9, cellPadding: 5 },
-          headStyles: { fillColor: [27, 27, 29] }
-        })
-      } else {
-        doc.setFontSize(10)
-        doc.text(doc.splitTextToSize(note.body, 515), 40, 92)
-      }
-
-      download(doc.output('blob'), `${fileStem(note)}.pdf`)
+    } else {
+      doc.setFontSize(10)
+      doc.text(doc.splitTextToSize(payload.rows.map(row => row.join(' ')).join('\n'), 515), 40, 92)
     }
+
+    download(doc.output('blob'), `${fileStem(payload.label, createdAt)}.pdf`)
+  }
+
+  return {
+    exportXlsx,
+    exportPdf,
+    toXlsx: (note: NoteRecord) => exportXlsx(payloadFromNote(note)),
+    toPdf: (note: NoteRecord) => exportPdf(payloadFromNote(note))
   }
 }
