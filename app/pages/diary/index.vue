@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { JournalEntryRecord } from '~~/shared/types/planner'
 import DiaryCalendar from '~/components/diary/DiaryCalendar.vue'
+import DiaryTabs from '~/components/diary/DiaryTabs.vue'
 
 definePageMeta({
   middleware: 'protected'
@@ -73,6 +74,8 @@ async function createEntry() {
       title="Diary and reflection"
       subtitle="Keep the private narrative close to the calendar so decisions and emotional load stay legible."
     />
+
+    <DiaryTabs />
 
     <p v-if="errorMessage" class="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
       {{ errorMessage }}
