@@ -65,6 +65,17 @@ function releasePreview() {
 
 onBeforeUnmount(releasePreview)
 
+/**
+ * Drops the picture but keeps what was read out of it. Once the text is
+ * extracted the image has done its job, and it is the tallest thing on the
+ * page — but clearing it must not take the text with it, which is what
+ * `reset()` does.
+ */
+function removeImage() {
+  releasePreview()
+  savedMessage.value = ''
+}
+
 function reset() {
   releasePreview()
   fileName.value = ''
@@ -237,17 +248,42 @@ async function saveNote() {
         </label>
 
         <div v-if="previewUrl" class="space-y-2">
-          <div class="flex items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
             <p class="eyebrow">Preview</p>
-            <button type="button" class="text-xs font-semibold text-muted hover:text-ink" @click="reset">
-              Clear
-            </button>
+            <div class="flex items-center gap-4">
+              <button
+                type="button"
+                class="text-xs font-semibold text-muted hover:text-ink disabled:opacity-40"
+                :disabled="reading"
+                :title="extracted ? 'Remove the picture and keep the text' : 'Remove the picture'"
+                @click="removeImage"
+              >
+                Remove image
+              </button>
+              <button
+                type="button"
+                class="text-xs font-semibold text-muted hover:text-rose-700 disabled:opacity-40"
+                :disabled="reading"
+                title="Clear the image and the extracted text"
+                @click="reset"
+              >
+                Start over
+              </button>
+            </div>
           </div>
           <div class="overflow-hidden rounded-soft bg-surface-low">
             <img :src="previewUrl" :alt="fileName" class="max-h-[22rem] w-full object-contain" />
           </div>
           <p class="truncate text-xs text-muted" :title="fileName">{{ fileName }}</p>
         </div>
+
+        <p
+          v-else-if="fileName && extracted"
+          class="rounded-soft bg-surface-low px-4 py-3 text-sm leading-6 text-muted"
+        >
+          Image removed. The text read from <span class="font-semibold text-ink">{{ fileName }}</span> is
+          still on the right.
+        </p>
 
         <div v-if="reading" class="space-y-2">
           <div class="flex items-center justify-between text-sm text-muted">
