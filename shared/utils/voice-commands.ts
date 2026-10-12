@@ -159,7 +159,9 @@ export const VOICE_COMMANDS: VoiceCommand[] = [
         endpoint: '/api/priorities',
         body: {
           title: capitalise(title),
-          detail: '',
+          // The schema needs at least three characters here, and a spoken
+          // command only carries a title.
+          detail: 'Captured by voice.',
           status: 'focus',
           urgency,
           focusWindow: 'Morning deep work'
