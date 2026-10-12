@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Mic } from 'lucide-vue-next'
+
 withDefaults(
   defineProps<{
     mobile?: boolean
@@ -87,6 +89,14 @@ function isChildActive(child: NavTarget) {
     </nav>
 
     <div class="space-y-2 border-t ghost-divider pt-6 text-sm">
+      <NuxtLink
+        to="/voice"
+        class="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left font-medium transition"
+        :class="route.path === '/voice' ? 'bg-ink text-white' : 'bg-surface text-muted hover:text-ink'"
+      >
+        <Mic class="h-4 w-4 shrink-0" />
+        Voice control
+      </NuxtLink>
       <button class="w-full rounded-2xl bg-surface px-4 py-3 text-left font-medium text-muted transition hover:text-ink">
         Settings
       </button>
