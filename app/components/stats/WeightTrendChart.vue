@@ -84,23 +84,18 @@ const points = computed<ChartPoint[]>(() => {
   return result
 })
 
-/** Separate polyline segments so missed weeks leave a visible gap. */
-const segments = computed(() => {
-  const result: string[] = []
-  let current: string[] = []
-  let lastIndex: number | null = null
-
-  for (const point of points.value) {
-    if (lastIndex !== null && point.index !== lastIndex + 1) {
-      if (current.length > 1) result.push(current.join(' '))
-      current = []
-    }
-    current.push(`${point.x},${point.y}`)
-    lastIndex = point.index
-  }
-  if (current.length > 1) result.push(current.join(' '))
-  return result
-})
+/**
+ * One line through every weigh-in, including across weeks with none.
+ *
+ * This used to break the line at each gap, which was meant to show that
+ * nothing was measured there. In practice weeks are missed often enough that
+ * isolated points ended up with no line at all — a chart of three
+ * disconnected dots reads as broken rather than as honest. The dots still mark
+ * where the real measurements are.
+ */
+const linePoints = computed(() =>
+  points.value.length > 1 ? points.value.map(point => `${point.x},${point.y}`).join(' ') : ''
+)
 
 const areaPath = computed(() => {
   if (points.value.length < 2) {
@@ -182,9 +177,8 @@ const targetY = computed(() => {
     />
 
     <polyline
-      v-for="(segment, index) in segments"
-      :key="`segment-${index}`"
-      :points="segment"
+      v-if="linePoints"
+      :points="linePoints"
       fill="none"
       stroke="currentColor"
       stroke-width="2.5"
