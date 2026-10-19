@@ -2,6 +2,8 @@
 import type { FinanceOverview } from '~~/shared/types/planner'
 import type { MarketsOverview } from '~~/shared/types/markets'
 import MarketsIndexTrendChart from '~/components/markets/IndexTrendChart.vue'
+import MarketsPriceMaChart from '~/components/markets/PriceMaChart.vue'
+import type { TickerSeries } from '~~/shared/types/ticker-series'
 
 const props = defineProps<{
   section: 'overview' | 'investing' | 'income' | 'expenses'
@@ -96,6 +98,48 @@ const sectionSubtitle = computed(() => {
       return 'Manual money tracking stays lightweight, but the monthly signal remains visible enough to guide deliberate tradeoffs.'
   }
 })
+
+const tickerInput = ref('')
+const tickerSeries = ref<TickerSeries | null>(null)
+const loadingTicker = ref(false)
+const tickerError = ref('')
+
+async function lookupTicker() {
+  const symbol = tickerInput.value.trim()
+  if (!symbol || loadingTicker.value) {
+    return
+  }
+
+  loadingTicker.value = true
+  tickerError.value = ''
+
+  try {
+    tickerSeries.value = await $fetch<TickerSeries>('/api/markets/series', { query: { symbol } })
+  } catch (error) {
+    tickerSeries.value = null
+    const detail =
+      error && typeof error === 'object' && 'data' in error
+        ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
+        : null
+    tickerError.value = detail || 'That ticker could not be loaded.'
+  } finally {
+    loadingTicker.value = false
+  }
+}
+
+function signedPercent(value: number | null) {
+  if (value === null) {
+    return '—'
+  }
+  return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
+}
+
+function percentTone(value: number | null) {
+  if (!value) {
+    return 'text-muted'
+  }
+  return value > 0 ? 'text-emerald-700' : 'text-rose-700'
+}
 
 const INVESTMENT_CURRENCIES = ['USD', 'EUR', 'GBP', 'CHF', 'JPY']
 
@@ -236,6 +280,68 @@ async function createTransaction() {
         {{ sectionItem.label }}
       </NuxtLink>
     </div>
+
+    <!-- Above Markets: look up one ticker and see it against its 200-day average. -->
+    <PanelCard v-if="section === 'investing'" class="space-y-4">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p class="eyebrow">Ticker</p>
+          <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">Price and 200-day average</h2>
+          <p class="mt-1 text-sm text-muted">Last twelve months of daily closes.</p>
+        </div>
+        <form class="flex flex-wrap items-center gap-2" @submit.prevent="lookupTicker">
+          <input
+            v-model="tickerInput"
+            class="w-40 rounded-2xl bg-surface-low px-4 py-3 uppercase outline-none"
+            type="text"
+            maxlength="12"
+            placeholder="AAPL"
+            autocapitalize="characters"
+            spellcheck="false"
+          />
+          <button
+            class="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"
+            :disabled="loadingTicker || !tickerInput.trim()"
+          >
+            {{ loadingTicker ? 'Loading…' : 'Show' }}
+          </button>
+        </form>
+      </div>
+
+      <p v-if="tickerError" class="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        {{ tickerError }}
+      </p>
+
+      <template v-if="tickerSeries">
+        <div class="flex flex-wrap items-end gap-x-8 gap-y-2 border-t border-outline/10 pt-4">
+          <div>
+            <p class="eyebrow">{{ tickerSeries.symbol }}</p>
+            <p class="mt-1 text-sm text-muted">{{ tickerSeries.name }}</p>
+          </div>
+          <div>
+            <p class="eyebrow">12-month change</p>
+            <p class="mt-1 font-display text-xl font-bold" :class="percentTone(tickerSeries.changePercent)">
+              {{ signedPercent(tickerSeries.changePercent) }}
+            </p>
+          </div>
+          <div>
+            <p class="eyebrow">Against the 200-day</p>
+            <p class="mt-1 font-display text-xl font-bold" :class="percentTone(tickerSeries.gapToMa200Percent)">
+              {{ signedPercent(tickerSeries.gapToMa200Percent) }}
+            </p>
+          </div>
+        </div>
+
+        <MarketsPriceMaChart :series="tickerSeries" />
+      </template>
+
+      <p
+        v-else-if="!tickerError"
+        class="rounded-soft bg-surface-low px-4 py-8 text-center text-sm text-muted"
+      >
+        Enter a ticker to chart it — for example AAPL, MSFT or VWCE.DE.
+      </p>
+    </PanelCard>
 
     <PanelCard class="space-y-4">
       <div class="flex flex-wrap items-end justify-between gap-3">
