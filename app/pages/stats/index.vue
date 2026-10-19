@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import type { StatsOverview } from '~~/shared/types/stats'
+import {
+  isPlausibleWeight,
+  isoWeekStart,
+  localNoonIso,
+  parseWeight,
+  todayIso
+} from '~~/shared/utils/weigh-in'
 import StatsWeightTrendChart from '~/components/stats/WeightTrendChart.vue'
 
 definePageMeta({
@@ -15,6 +22,7 @@ const TABS = [
 
 const route = useRoute()
 
+const dateInput = ref(todayIso())
 const weightInput = ref('')
 const bodyFatInput = ref('')
 const notesInput = ref('')
@@ -59,9 +67,23 @@ async function saveProfile() {
   }
 }
 
+/** The ISO week the chosen date falls in, which is what the entry replaces. */
+const selectedWeekKey = computed(() => isoWeekStart(dateInput.value))
+
+const selectedWeekLogged = computed(() =>
+  Boolean(
+    selectedWeekKey.value &&
+      overview.value?.history.some(entry => entry.weekKey === selectedWeekKey.value)
+  )
+)
+
+const weightValue = computed(() => parseWeight(weightInput.value))
+const canSaveWeighIn = computed(
+  () => isPlausibleWeight(weightValue.value) && Boolean(localNoonIso(dateInput.value))
+)
+
 async function saveWeighIn() {
-  const weight = Number(weightInput.value)
-  if (!weight || savingWeighIn.value) {
+  if (!canSaveWeighIn.value || savingWeighIn.value) {
     return
   }
 
@@ -72,14 +94,16 @@ async function saveWeighIn() {
     await $fetch('/api/stats/weigh-ins', {
       method: 'POST',
       body: {
-        weightKg: weight,
+        weightKg: weightValue.value,
         bodyFatPercent: bodyFatInput.value.trim() ? Number(bodyFatInput.value) : null,
-        notes: notesInput.value.trim()
+        notes: notesInput.value.trim(),
+        measuredAt: localNoonIso(dateInput.value)
       }
     })
     weightInput.value = ''
     bodyFatInput.value = ''
     notesInput.value = ''
+    dateInput.value = todayIso()
     await refresh()
   } catch {
     errorMessage.value = 'Unable to save this weigh-in. Weight must be between 25 and 400 kg.'
@@ -211,23 +235,34 @@ function formatWeek(weekKey: string) {
         <div>
           <p class="eyebrow">Weekly weigh-in</p>
           <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">
-            {{ overview.currentWeekLogged ? 'Update this week' : 'Log this week' }}
+            {{ selectedWeekLogged ? 'Update that week' : 'Log a weigh-in' }}
           </h2>
           <p class="mt-2 text-sm text-muted">
-            Week of {{ formatWeek(overview.currentWeekKey) }}. One entry per week — saving again replaces it.
+            <template v-if="selectedWeekKey">
+              Week of {{ formatWeek(selectedWeekKey) }}. One entry per week —
+              {{ selectedWeekLogged ? 'saving replaces the one already there.' : 'this will be its first.' }}
+            </template>
+            <template v-else>Pick a date.</template>
           </p>
         </div>
         <form class="space-y-3" @submit.prevent="saveWeighIn">
+          <label class="block">
+            <span class="eyebrow">Date</span>
+            <input
+              v-model="dateInput"
+              class="mt-2 w-full rounded-2xl bg-surface-low px-4 py-3 outline-none"
+              type="date"
+              required
+            />
+          </label>
           <div class="grid gap-3 sm:grid-cols-2">
             <label class="block">
               <span class="eyebrow">Weight (kg)</span>
               <input
                 v-model="weightInput"
                 class="mt-2 w-full rounded-2xl bg-surface-low px-4 py-3 outline-none"
-                type="number"
-                step="0.1"
-                min="25"
-                max="400"
+                type="text"
+                inputmode="decimal"
                 placeholder="82.4"
                 required
               />
@@ -253,9 +288,9 @@ function formatWeek(weekKey: string) {
           />
           <button
             class="w-full rounded-full bg-ink px-5 py-3 font-semibold text-white disabled:opacity-50"
-            :disabled="savingWeighIn || !weightInput"
+            :disabled="savingWeighIn || !canSaveWeighIn"
           >
-            {{ overview.currentWeekLogged ? 'Update weigh-in' : 'Save weigh-in' }}
+            {{ selectedWeekLogged ? 'Update weigh-in' : 'Save weigh-in' }}
           </button>
         </form>
       </PanelCard>

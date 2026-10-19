@@ -3,6 +3,7 @@ import type { DashboardPayload, UrgencyLevel } from '~~/shared/types/planner'
 import type { RoutineDayItem, RoutineOverview, RoutineState } from '~~/shared/types/routine'
 import type { StatsOverview } from '~~/shared/types/stats'
 import StatsWeightTrendChart from '~/components/stats/WeightTrendChart.vue'
+import { isPlausibleWeight, localNoonIso, parseWeight, todayIso } from '~~/shared/utils/weigh-in'
 
 definePageMeta({
   middleware: 'protected'
@@ -29,31 +30,14 @@ const openTasks = computed(() =>
     .sort((a, b) => (URGENCY_ORDER[a.urgency] ?? 9) - (URGENCY_ORDER[b.urgency] ?? 9))
 )
 
-/** Today as YYYY-MM-DD in local time, which is what a date input expects. */
-function todayIso() {
-  const now = new Date()
-  const offset = now.getTimezoneOffset() * 60000
-  return new Date(now.getTime() - offset).toISOString().slice(0, 10)
-}
-
 const weighIn = reactive({ date: todayIso(), weight: '' })
 const savingWeighIn = ref(false)
 const weighInError = ref('')
 
-/** Accepts a comma as the decimal separator, since that is what a Slovenian keyboard gives. */
-const weighInValue = computed(() => {
-  const raw = weighIn.weight.trim().replace(',', '.')
-  if (!raw) {
-    return null
-  }
-  const value = Number(raw)
-  return Number.isFinite(value) ? value : null
-})
-
-const weighInValid = computed(() => {
-  const value = weighInValue.value
-  return value !== null && value >= 25 && value <= 400 && Boolean(weighIn.date)
-})
+const weighInValue = computed(() => parseWeight(weighIn.weight))
+const weighInValid = computed(
+  () => isPlausibleWeight(weighInValue.value) && Boolean(localNoonIso(weighIn.date))
+)
 
 async function saveWeighIn() {
   if (!weighInValid.value || savingWeighIn.value) {
@@ -64,18 +48,9 @@ async function saveWeighIn() {
   weighInError.value = ''
 
   try {
-    /*
-     * The API takes a full timestamp and derives the ISO week from it. Noon
-     * local is used rather than midnight: midnight converted to UTC can land
-     * on the previous day west of Greenwich, which would file a Monday
-     * weigh-in under the week before.
-     */
-    const [year, month, day] = weighIn.date.split('-').map(Number)
-    const measuredAt = new Date(year!, month! - 1, day!, 12, 0, 0).toISOString()
-
     await $fetch('/api/stats/weigh-ins', {
       method: 'POST',
-      body: { weightKg: weighInValue.value, measuredAt }
+      body: { weightKg: weighInValue.value, measuredAt: localNoonIso(weighIn.date) }
     })
 
     weighIn.weight = ''
