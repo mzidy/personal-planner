@@ -13,7 +13,10 @@ const { data: routine, refresh: refreshRoutine } = await usePlannerFetch<Routine
   'dashboard-routine',
   '/api/routine/overview'
 )
-const { data: stats } = await usePlannerFetch<StatsOverview>('dashboard-stats', '/api/stats/overview')
+const { data: stats, refresh: refreshStats } = await usePlannerFetch<StatsOverview>(
+  'dashboard-stats',
+  '/api/stats/overview'
+)
 
 const todayRoutine = computed(() => routine.value?.todayItems || [])
 
@@ -25,6 +28,68 @@ const openTasks = computed(() =>
     .filter(item => item.status !== 'done')
     .sort((a, b) => (URGENCY_ORDER[a.urgency] ?? 9) - (URGENCY_ORDER[b.urgency] ?? 9))
 )
+
+/** Today as YYYY-MM-DD in local time, which is what a date input expects. */
+function todayIso() {
+  const now = new Date()
+  const offset = now.getTimezoneOffset() * 60000
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10)
+}
+
+const weighIn = reactive({ date: todayIso(), weight: '' })
+const savingWeighIn = ref(false)
+const weighInError = ref('')
+
+/** Accepts a comma as the decimal separator, since that is what a Slovenian keyboard gives. */
+const weighInValue = computed(() => {
+  const raw = weighIn.weight.trim().replace(',', '.')
+  if (!raw) {
+    return null
+  }
+  const value = Number(raw)
+  return Number.isFinite(value) ? value : null
+})
+
+const weighInValid = computed(() => {
+  const value = weighInValue.value
+  return value !== null && value >= 25 && value <= 400 && Boolean(weighIn.date)
+})
+
+async function saveWeighIn() {
+  if (!weighInValid.value || savingWeighIn.value) {
+    return
+  }
+
+  savingWeighIn.value = true
+  weighInError.value = ''
+
+  try {
+    /*
+     * The API takes a full timestamp and derives the ISO week from it. Noon
+     * local is used rather than midnight: midnight converted to UTC can land
+     * on the previous day west of Greenwich, which would file a Monday
+     * weigh-in under the week before.
+     */
+    const [year, month, day] = weighIn.date.split('-').map(Number)
+    const measuredAt = new Date(year!, month! - 1, day!, 12, 0, 0).toISOString()
+
+    await $fetch('/api/stats/weigh-ins', {
+      method: 'POST',
+      body: { weightKg: weighInValue.value, measuredAt }
+    })
+
+    weighIn.weight = ''
+    await refreshStats()
+  } catch (error) {
+    const detail =
+      error && typeof error === 'object' && 'data' in error
+        ? (error as { data?: { statusMessage?: string } }).data?.statusMessage
+        : null
+    weighInError.value = detail || 'That weigh-in could not be saved.'
+  } finally {
+    savingWeighIn.value = false
+  }
+}
 
 function urgencyTone(urgency: UrgencyLevel) {
   if (urgency === 'critical') return 'danger'
@@ -204,6 +269,46 @@ function routineLabel(state: RoutineState) {
             Nothing open — add one under
             <NuxtLink to="/priorities" class="font-semibold text-accent">Tasks</NuxtLink>.
           </p>
+        </PanelCard>
+
+        <!-- Only while this week has no weigh-in; it disappears once one is in. -->
+        <PanelCard v-if="stats && !stats.currentWeekLogged" tone="muted">
+          <p class="eyebrow">Weigh-in</p>
+          <p class="mt-3 font-display text-2xl font-bold tracking-[-0.05em]">This week is missing</p>
+
+          <form class="mt-4 space-y-3 border-t border-outline/10 pt-4" @submit.prevent="saveWeighIn">
+            <label class="block">
+              <span class="eyebrow">Date</span>
+              <input
+                v-model="weighIn.date"
+                class="mt-2 w-full rounded-2xl bg-surface px-4 py-3 outline-none"
+                type="date"
+                required
+              />
+            </label>
+            <label class="block">
+              <span class="eyebrow">Weight (kg)</span>
+              <input
+                v-model="weighIn.weight"
+                class="mt-2 w-full rounded-2xl bg-surface px-4 py-3 outline-none"
+                type="text"
+                inputmode="decimal"
+                placeholder="85.4"
+                required
+              />
+            </label>
+
+            <p v-if="weighInError" class="rounded-2xl bg-rose-50 px-4 py-2 text-xs text-rose-700">
+              {{ weighInError }}
+            </p>
+
+            <button
+              class="w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"
+              :disabled="!weighInValid || savingWeighIn"
+            >
+              {{ savingWeighIn ? 'Saving…' : 'Save weigh-in' }}
+            </button>
+          </form>
         </PanelCard>
       </div>
     </div>
