@@ -3,6 +3,7 @@ import type { FinanceOverview } from '~~/shared/types/planner'
 import type { MarketsOverview } from '~~/shared/types/markets'
 import MarketsIndexTrendChart from '~/components/markets/IndexTrendChart.vue'
 import MarketsPriceMaChart from '~/components/markets/PriceMaChart.vue'
+import MarketsVolatilityStrip from '~/components/markets/VolatilityStrip.vue'
 import type { TickerSeries } from '~~/shared/types/ticker-series'
 
 const props = defineProps<{
@@ -358,6 +359,8 @@ async function createTransaction() {
       </div>
 
       <MarketsIndexTrendChart v-if="markets && markets.series.length" :series="markets.series" />
+
+      <MarketsVolatilityStrip v-if="markets?.volatility" :series="markets.volatility" />
       <p v-else class="rounded-soft bg-surface-low px-4 py-8 text-center text-sm text-muted">
         Market data is unavailable right now. It refreshes automatically on the next load.
       </p>
