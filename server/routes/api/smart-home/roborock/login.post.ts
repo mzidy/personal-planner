@@ -1,7 +1,7 @@
 import { roborockLoginSchema } from '~~/shared/schemas/smart-home'
 import { listRoborockDevices, loginRoborockWithCode } from '~~/server/utils/roborock-api'
 import { useSmartHomeRepository } from '~~/server/utils/smart-home-repository'
-import { roborockHttpError } from '~~/server/utils/smart-home-roborock'
+import { smartHomeHttpError } from '~~/server/utils/smart-home-vacuum'
 
 /** Step 2: log in with the emailed code, keep the session (sealed), and list the devices. */
 export default defineEventHandler(async event => {
@@ -22,7 +22,7 @@ export default defineEventHandler(async event => {
     const devices = await listRoborockDevices(region, account.email, account.clientIdentifier, session)
     await repository.syncDevices(user.id, account.id, devices)
   } catch (error) {
-    throw roborockHttpError(error)
+    throw smartHomeHttpError(error)
   }
 
   await usePlannerRepository().createAuditEvent(user.id, 'connect', 'smart-home-account', account.id, { provider: 'roborock' })

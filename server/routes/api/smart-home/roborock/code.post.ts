@@ -1,7 +1,7 @@
 import { roborockCodeRequestSchema } from '~~/shared/schemas/smart-home'
 import { findRoborockRegion, newClientIdentifier, requestRoborockCode } from '~~/server/utils/roborock-api'
 import { useSmartHomeRepository } from '~~/server/utils/smart-home-repository'
-import { roborockHttpError } from '~~/server/utils/smart-home-roborock'
+import { smartHomeHttpError } from '~~/server/utils/smart-home-vacuum'
 
 /** Step 1 of connecting: Roborock emails a login code to the account's address. */
 export default defineEventHandler(async event => {
@@ -16,7 +16,7 @@ export default defineEventHandler(async event => {
     const region = await requestRoborockCode(await findRoborockRegion(email), email, clientIdentifier)
     await repository.saveCodeRequest(user.id, email, region, clientIdentifier)
   } catch (error) {
-    throw roborockHttpError(error)
+    throw smartHomeHttpError(error)
   }
   return repository.overview(user.id)
 })

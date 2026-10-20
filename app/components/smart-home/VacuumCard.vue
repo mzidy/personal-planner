@@ -158,8 +158,14 @@ const parts = computed(() =>
     </div>
 
     <p v-if="!device.supported" class="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
-      This device uses Roborock protocol {{ device.protocolVersion }}, which this app cannot control yet. Only "1.0"
-      devices (most Roborock vacuums, including the S5, S6, S7, S8 and Q5 lines) are supported.
+      <template v-if="device.provider === 'xiaomi'">
+        {{ device.model }} is not a Roborock-made vacuum, so it takes different commands, which this app does not send
+        yet. Roborock-made vacuums in Xiaomi Home (models starting with roborock.vacuum or rockrobo.vacuum) work.
+      </template>
+      <template v-else>
+        This device uses Roborock protocol {{ device.protocolVersion }}, which this app cannot control yet. Only "1.0"
+        devices (most Roborock vacuums, including the S5, S6, S7, S8 and Q5 lines) are supported.
+      </template>
     </p>
 
     <template v-else>

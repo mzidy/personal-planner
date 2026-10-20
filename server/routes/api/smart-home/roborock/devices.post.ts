@@ -1,6 +1,6 @@
 import { listRoborockDevices } from '~~/server/utils/roborock-api'
 import { useSmartHomeRepository } from '~~/server/utils/smart-home-repository'
-import { roborockHttpError } from '~~/server/utils/smart-home-roborock'
+import { smartHomeHttpError } from '~~/server/utils/smart-home-vacuum'
 
 /** Reloads the device list, for a vacuum added or renamed in the Roborock app. */
 export default defineEventHandler(async event => {
@@ -19,7 +19,7 @@ export default defineEventHandler(async event => {
     const devices = await listRoborockDevices(found.region, found.account.email, found.account.clientIdentifier, session)
     await repository.syncDevices(user.id, found.account.id, devices)
   } catch (error) {
-    throw roborockHttpError(error)
+    throw smartHomeHttpError(error)
   }
   return repository.overview(user.id)
 })
