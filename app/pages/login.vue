@@ -58,6 +58,8 @@ async function submit() {
       method: 'POST',
       body: { email: form.email.trim(), password: form.password }
     })
+    // Every session starts in the basic view.
+    resetViewMode()
     await reloadNuxtApp({ path: '/dashboard', ttl: 0 })
   } catch (error) {
     const fetchError = error as {

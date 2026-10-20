@@ -11,6 +11,7 @@ withDefaults(
 )
 
 const navigation = useNavigation()
+const { mode, setMode } = useViewMode()
 const route = useRoute()
 const runtimeConfig = useRuntimeConfig()
 
@@ -84,6 +85,28 @@ function isChildActive(child: NavTarget) {
             <component :is="child.icon" class="h-3.5 w-3.5" />
             <span>{{ child.label }}</span>
           </NuxtLink>
+        </div>
+      </div>
+
+      <!-- Directly under AI Learning: how much of the app the sidebar shows. -->
+      <div class="pt-2">
+        <div
+          class="grid grid-cols-2 gap-1 rounded-2xl bg-surface-low p-1 text-xs font-semibold"
+          role="radiogroup"
+          aria-label="Sidebar view"
+        >
+          <button
+            v-for="option in (['basic', 'extended'] as const)"
+            :key="option"
+            type="button"
+            role="radio"
+            :aria-checked="mode === option"
+            class="rounded-xl px-3 py-2 uppercase tracking-[0.12em] transition-colors"
+            :class="mode === option ? 'bg-ink text-white' : 'text-muted hover:text-ink'"
+            @click="setMode(option)"
+          >
+            {{ option === 'basic' ? 'Basic' : 'Extended' }}
+          </button>
         </div>
       </div>
     </nav>
