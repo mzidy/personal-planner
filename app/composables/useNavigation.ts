@@ -23,8 +23,26 @@ import {
   Trophy
 } from 'lucide-vue-next'
 
+/**
+ * Hidden in basic view: the finance detail beyond Overview and Investing, plus
+ * Goals, Personal stats, Shopping list and Calendar. Matched on route, since a
+ * label can be renamed without anyone thinking to update this.
+ */
+const BASIC_HIDDEN_ROUTES = new Set([
+  '/finance/income',
+  '/finance/expenses',
+  '/finance/portfolio',
+  '/investments',
+  '/goals',
+  '/stats',
+  '/shopping',
+  '/calendar'
+])
+
 export function useNavigation() {
-  return [
+  const { isBasic } = useViewMode()
+
+  const all = [
     { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
     {
       label: 'Finance',
@@ -85,4 +103,21 @@ export function useNavigation() {
     { label: 'AI Assistant', to: '/assistant', icon: Bot, accent: true },
     { label: 'AI Learning', to: '/learning', icon: GraduationCap, accent: true }
   ]
+
+  return computed(() => {
+    if (!isBasic.value) {
+      return all
+    }
+
+    return all
+      .filter(item => !BASIC_HIDDEN_ROUTES.has(item.to))
+      .map(item => {
+        if (!item.children) {
+          return item
+        }
+        const children = item.children.filter(child => !BASIC_HIDDEN_ROUTES.has(child.to))
+        // A parent left with only its own Overview no longer needs a submenu.
+        return children.length > 1 ? { ...item, children } : { ...item, children: undefined }
+      })
+  })
 }

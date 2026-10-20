@@ -14,12 +14,19 @@ const { currency, percent, shortDate, toIso } = useExecutiveFormat()
 const { data: finance, refresh } = await usePlannerFetch<FinanceOverview>('finance-page', '/api/finance/overview')
 const { data: markets } = await usePlannerFetch<MarketsOverview>('finance-markets', '/api/markets/indices')
 
-const sections = [
+const ALL_SECTIONS = [
   { label: 'Overview', key: 'overview', to: '/finance' },
   { label: 'Investing', key: 'investing', to: '/finance/investing' },
   { label: 'Income', key: 'income', to: '/finance/income' },
   { label: 'Expenses', key: 'expenses', to: '/finance/expenses' }
 ] as const
+
+const { isBasic } = useViewMode()
+
+/** The page's own tabs follow the sidebar, so basic view does not offer Income and Expenses here either. */
+const sections = computed(() =>
+  isBasic.value ? ALL_SECTIONS.filter(item => item.key === 'overview' || item.key === 'investing') : ALL_SECTIONS
+)
 
 const filteredTransactions = computed(() => {
   if (!finance.value) {
