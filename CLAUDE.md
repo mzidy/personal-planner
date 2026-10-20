@@ -98,15 +98,25 @@ the step endpoint in a loop. Keep any new step well under that limit. Citations
 are checked in code (`shared/utils/claudemy-check.ts`) against the pages that
 were actually fetched, never against what the model says it read.
 
-## Smart Home (Roborock)
+## Smart Home (Roborock app and Xiaomi Home)
 
-The vacuum is reached through Roborock's cloud, the same way the Roborock app
-does it: login by emailed code (`server/utils/roborock-api.ts`), then one MQTT
-connection per request (`server/utils/roborock-mqtt.ts`), because a serverless
-function cannot keep one open. The wire format lives in
-`server/utils/roborock-protocol.ts` and is checked byte for byte in tests
-against vectors computed independently from python-roborock's definitions;
-change it only with a new vector.
+A vacuum can live in either app, and both paths carry the same miio commands
+(`server/utils/smart-home-vacuum.ts` picks the path per device):
+
+- **Roborock app:** login by emailed code (`server/utils/roborock-api.ts`),
+  then one MQTT connection per request (`server/utils/roborock-mqtt.ts`),
+  because a serverless function cannot keep one open. The wire format lives in
+  `server/utils/roborock-protocol.ts`.
+- **Xiaomi Home:** login by scanning a QR code in the app, no password
+  (`server/utils/xiaomi-cloud.ts`); commands go through Xiaomi's cloud relay,
+  `/home/rpc/{did}`, RC4-encrypted and signed
+  (`server/utils/xiaomi-cloud-protocol.ts`). Only Roborock-made vacuums
+  (`roborock.vacuum.*`, `rockrobo.vacuum.*`) are controlled; other models in
+  Xiaomi Home use MIoT and are listed as unsupported.
+
+Both protocol modules are checked byte for byte in tests against vectors
+computed independently from the reference implementations (python-roborock,
+Xiaomi-cloud-tokens-extractor); change them only with a new vector.
 
 The Roborock session and device keys are sealed with a key derived from
 `NUXT_SESSION_PASSWORD` (`server/utils/secret-box.ts`). Rotating that password

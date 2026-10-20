@@ -37,12 +37,18 @@ export interface VacuumSummary {
   count: number | null
 }
 
+export type SmartHomeProvider = 'roborock' | 'xiaomi'
+
 export interface SmartHomeDevice {
   id: string
+  provider: SmartHomeProvider
   name: string
   model: string
   productName: string
-  /** Roborock protocol version; only "1.0" devices can be controlled here. */
+  /**
+   * Roborock: the device protocol ("1.0" is controllable). Xiaomi: "miio" for
+   * Roborock-made vacuums, which take the same commands, "miot" for others.
+   */
   protocolVersion: string
   supported: boolean
   online: boolean
@@ -50,16 +56,20 @@ export interface SmartHomeDevice {
 }
 
 export interface SmartHomeAccount {
-  provider: 'roborock'
+  provider: SmartHomeProvider
+  /** The Roborock email, or the Xiaomi account id once connected. */
   email: string
-  /** awaiting_code: a code was sent and not used yet. */
-  status: 'awaiting_code' | 'connected'
+  /** awaiting_code: a Roborock code was sent. awaiting_scan: a Xiaomi QR code is waiting to be scanned. */
+  status: 'awaiting_code' | 'awaiting_scan' | 'connected'
   region: string
   connectedAt: string | null
+  /** While a Xiaomi QR login is open: the code to scan and when it stops working. */
+  qrImageUrl: string | null
+  qrExpiresAt: string | null
 }
 
 export interface SmartHomeOverview {
-  account: SmartHomeAccount | null
+  accounts: Record<SmartHomeProvider, SmartHomeAccount | null>
   devices: SmartHomeDevice[]
 }
 
