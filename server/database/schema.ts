@@ -488,3 +488,53 @@ export const auditEvents = sqliteTable('audit_events', {
   context: text('context', { mode: 'json' }).$type<Record<string, unknown>>().notNull().default({}),
   createdAt: text('created_at').notNull()
 })
+
+/**
+ * A linked smart home account (for now only Roborock, logged in by emailed
+ * code). `credentials` is the session Roborock returned, sealed with
+ * server/utils/secret-box.ts; the account password is never stored.
+ */
+export const smartHomeAccounts = sqliteTable(
+  'smart_home_accounts',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull().default('roborock'),
+    email: text('email').notNull(),
+    baseUrl: text('base_url').notNull(),
+    country: text('country').notNull().default(''),
+    countryCode: text('country_code').notNull().default(''),
+    /** Random value behind Roborock's header_clientid; the code request and the login must share it. */
+    clientIdentifier: text('client_identifier').notNull(),
+    credentials: text('credentials'),
+    /** 'awaiting_code' after a code was sent, 'connected' once logged in. */
+    status: text('status').notNull().default('awaiting_code'),
+    connectedAt: text('connected_at'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull()
+  },
+  table => [uniqueIndex('smart_home_accounts_user_provider').on(table.userId, table.provider)]
+)
+
+export const smartHomeDevices = sqliteTable(
+  'smart_home_devices',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    accountId: text('account_id').notNull().references(() => smartHomeAccounts.id, { onDelete: 'cascade' }),
+    /** Roborock's device id. */
+    duid: text('duid').notNull(),
+    name: text('name').notNull(),
+    model: text('model').notNull().default(''),
+    productName: text('product_name').notNull().default(''),
+    protocolVersion: text('protocol_version').notNull().default('1.0'),
+    /** The device's local key, sealed like the account credentials. */
+    localKey: text('local_key').notNull(),
+    online: integer('online', { mode: 'boolean' }).notNull().default(true),
+    lastStatus: text('last_status', { mode: 'json' }).$type<Record<string, unknown> | null>(),
+    lastStatusAt: text('last_status_at'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull()
+  },
+  table => [uniqueIndex('smart_home_devices_account_duid').on(table.accountId, table.duid)]
+)

@@ -97,3 +97,18 @@ does one bounded step per request and saves the result; the course page calls
 the step endpoint in a loop. Keep any new step well under that limit. Citations
 are checked in code (`shared/utils/claudemy-check.ts`) against the pages that
 were actually fetched, never against what the model says it read.
+
+## Smart Home (Roborock)
+
+The vacuum is reached through Roborock's cloud, the same way the Roborock app
+does it: login by emailed code (`server/utils/roborock-api.ts`), then one MQTT
+connection per request (`server/utils/roborock-mqtt.ts`), because a serverless
+function cannot keep one open. The wire format lives in
+`server/utils/roborock-protocol.ts` and is checked byte for byte in tests
+against vectors computed independently from python-roborock's definitions;
+change it only with a new vector.
+
+The Roborock session and device keys are sealed with a key derived from
+`NUXT_SESSION_PASSWORD` (`server/utils/secret-box.ts`). Rotating that password
+logs the account out here, and it has to be connected again. Only "1.0"
+(V1) devices are supported; A01/B01/L01 devices are listed but not controlled.
