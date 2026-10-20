@@ -73,6 +73,13 @@ export default defineNuxtConfig({
       }
     }
   },
+  nitro: {
+    vercel: {
+      // Claudemy runs its pipeline one step per request, and a step (a web
+      // research call, or reading four pages) can take a few minutes.
+      functions: { maxDuration: 300 }
+    }
+  },
   routeRules: {
     '/': { redirect: '/dashboard' },
     // Daily routine moved from Goals to Tasks; keep old links working.

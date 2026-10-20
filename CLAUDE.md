@@ -83,3 +83,17 @@ query, so a 200 there is not evidence that the database works. Check
   child renders the parent unless it includes `<NuxtPage />`.
 - Pure logic worth trusting (indicators, financial maths) goes in `shared/utils`
   with unit tests, not inline in a component.
+- `useFetch` data is a shallow ref. Replace `data.value` with a new object;
+  mutating a nested field saves nothing visible.
+
+## Claude features
+
+The assistant, the learning notebook and Claudemy need `NUXT_ANTHROPIC_API_KEY`
+(in `.env` locally, and in Vercel for production); without it they answer 503.
+
+Claudemy (AI Learning → Claudemy) cannot run as one long job: a Vercel function
+gets 300 s (`nitro.vercel.functions.maxDuration`). `server/utils/claudemy-pipeline.ts`
+does one bounded step per request and saves the result; the course page calls
+the step endpoint in a loop. Keep any new step well under that limit. Citations
+are checked in code (`shared/utils/claudemy-check.ts`) against the pages that
+were actually fetched, never against what the model says it read.
