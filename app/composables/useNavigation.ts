@@ -9,6 +9,7 @@ import {
   Calculator,
   Compass,
   HeartPulse,
+  House,
   ShoppingCart,
   CandlestickChart,
   Landmark,
@@ -101,6 +102,7 @@ export function useNavigation() {
         { label: 'Import', to: '/diary/import', icon: ImageUp }
       ]
     },
+    { label: 'Smart Home', to: '/smart-home', icon: House },
     { label: 'AI Assistant', to: '/assistant', icon: Bot, accent: true },
     {
       label: 'AI Learning',
