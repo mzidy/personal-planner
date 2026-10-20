@@ -2,6 +2,7 @@ import {
   Bot,
   BookOpen,
   GraduationCap,
+  Headphones,
   CalendarDays,
   ImageUp,
   StickyNote,
@@ -101,7 +102,16 @@ export function useNavigation() {
       ]
     },
     { label: 'AI Assistant', to: '/assistant', icon: Bot, accent: true },
-    { label: 'AI Learning', to: '/learning', icon: GraduationCap, accent: true }
+    {
+      label: 'AI Learning',
+      to: '/learning',
+      icon: GraduationCap,
+      accent: true,
+      children: [
+        { label: 'Notebook', to: '/learning', icon: GraduationCap },
+        { label: 'Claudemy', to: '/learning/claudemy', icon: Headphones, match: ['/learning/claudemy'] }
+      ]
+    }
   ]
 
   return computed(() => {

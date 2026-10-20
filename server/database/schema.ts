@@ -199,6 +199,90 @@ export const learningMessages = sqliteTable('learning_messages', {
   createdAt: text('created_at').notNull()
 })
 
+/**
+ * A Claudemy course: a topic researched on the web and turned into short
+ * two-host lessons. The pipeline runs one bounded step per request, so every
+ * intermediate result (sub-topics, themes, plan) is kept here between steps.
+ */
+export const claudemyCourses = sqliteTable('claudemy_courses', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  topic: text('topic').notNull(),
+  level: text('level').notNull().default('beginner'),
+  lessonCount: integer('lesson_count').notNull().default(12),
+  person: text('person').notNull().default(''),
+  stage: text('stage').notNull().default('mapping'),
+  error: text('error').notNull().default(''),
+  /** Set while a step runs, so a second tab cannot run the same step twice. */
+  stepStartedAt: text('step_started_at'),
+  sourcingRound: integer('sourcing_round').notNull().default(0),
+  /** Index of the next sub-topic to search for in the first sourcing round. */
+  sourcingCursor: integer('sourcing_cursor').notNull().default(0),
+  subtopics: text('subtopics', { mode: 'json' }).$type<unknown[]>().notNull().default([]),
+  themes: text('themes', { mode: 'json' }).$type<unknown[]>().notNull().default([]),
+  splits: text('splits', { mode: 'json' }).$type<unknown[]>().notNull().default([]),
+  gaps: text('gaps', { mode: 'json' }).$type<string[]>().notNull().default([]),
+  arcs: text('arcs', { mode: 'json' }).$type<unknown[]>().notNull().default([]),
+  disagreements: text('disagreements', { mode: 'json' }).$type<unknown[]>().notNull().default([]),
+  stories: text('stories', { mode: 'json' }).$type<unknown[]>().notNull().default([]),
+  feedback: text('feedback').notNull().default(''),
+  inputTokens: integer('input_tokens').notNull().default(0),
+  outputTokens: integer('output_tokens').notNull().default(0),
+  webSearches: integer('web_searches').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull()
+})
+
+/** One page on a course's reading list, and the notes a reader took from it. */
+export const claudemyPages = sqliteTable(
+  'claudemy_pages',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    courseId: text('course_id').notNull().references(() => claudemyCourses.id, { onDelete: 'cascade' }),
+    seq: integer('seq').notNull(),
+    url: text('url').notNull(),
+    title: text('title').notNull().default(''),
+    kind: text('kind').notNull().default(''),
+    subtopics: text('subtopics', { mode: 'json' }).$type<string[]>().notNull().default([]),
+    status: text('status').notNull().default('pending'),
+    failReason: text('fail_reason').notNull().default(''),
+    words: integer('words').notNull().default(0),
+    /** Readable text of the page, for private study only; never republished. */
+    content: text('content').notNull().default(''),
+    readAt: text('read_at'),
+    skipReason: text('skip_reason').notNull().default(''),
+    notes: text('notes', { mode: 'json' }).$type<unknown[]>().notNull().default([]),
+    createdAt: text('created_at').notNull()
+  },
+  table => [uniqueIndex('claudemy_pages_course_seq').on(table.courseId, table.seq)]
+)
+
+export const claudemyLessons = sqliteTable(
+  'claudemy_lessons',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    courseId: text('course_id').notNull().references(() => claudemyCourses.id, { onDelete: 'cascade' }),
+    number: integer('number').notNull(),
+    arc: integer('arc').notNull().default(0),
+    handle: text('handle').notNull(),
+    status: text('status').notNull().default('planned'),
+    plan: text('plan', { mode: 'json' }).$type<Record<string, unknown>>().notNull(),
+    script: text('script', { mode: 'json' }).$type<unknown[] | null>(),
+    card: text('card', { mode: 'json' }).$type<Record<string, unknown> | null>(),
+    words: integer('words').notNull().default(0),
+    attempts: integer('attempts').notNull().default(0),
+    problems: text('problems', { mode: 'json' }).$type<string[]>().notNull().default([]),
+    heardAt: text('heard_at'),
+    triedAt: text('tried_at'),
+    ruleKept: integer('rule_kept', { mode: 'boolean' }).notNull().default(false),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull()
+  },
+  table => [uniqueIndex('claudemy_lessons_course_number').on(table.courseId, table.number)]
+)
+
 export const statsProfiles = sqliteTable(
   'stats_profiles',
   {
