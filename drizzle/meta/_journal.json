@@ -120,6 +120,13 @@
       "when": 1792502152201,
       "tag": "0016_early_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1792572880621,
+      "tag": "0017_equal_blur",
+      "breakpoints": true
     }
   ]
 }
