@@ -538,3 +538,16 @@ export const smartHomeDevices = sqliteTable(
   },
   table => [uniqueIndex('smart_home_devices_account_duid').on(table.accountId, table.duid)]
 )
+
+/** Tickers the user follows on Finance → Investing, in their chosen order. Quotes are fetched live, not stored. */
+export const watchlistItems = sqliteTable(
+  'watchlist_items',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    symbol: text('symbol').notNull(),
+    position: integer('position').notNull().default(0),
+    createdAt: text('created_at').notNull()
+  },
+  table => [uniqueIndex('watchlist_items_user_symbol').on(table.userId, table.symbol)]
+)
