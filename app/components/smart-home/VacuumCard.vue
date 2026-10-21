@@ -1,6 +1,13 @@
 <script setup lang="ts">
-import { BatteryMedium, Fan, House, MapPin, Pause, Play, RefreshCw } from 'lucide-vue-next'
-import type { SmartHomeDevice, VacuumAction, VacuumConsumables, VacuumStatus, VacuumSummary } from '~~/shared/types/smart-home'
+import { BatteryMedium, Fan, House, MapPin, Pause, Play, RefreshCw, X } from 'lucide-vue-next'
+import type {
+  SmartHomeDevice,
+  VacuumAction,
+  VacuumConsumables,
+  VacuumMapView,
+  VacuumStatus,
+  VacuumSummary
+} from '~~/shared/types/smart-home'
 
 const props = defineProps<{
   device: SmartHomeDevice
@@ -18,6 +25,19 @@ const busy = ref<VacuumAction | null>(null)
 const errorMessage = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
 let settle: ReturnType<typeof setTimeout> | null = null
+
+/** While cleaning, the map is fetched again at most this often, so the path grows on screen. */
+const MAP_ACTIVE_MS = 60_000
+
+const map = ref<VacuumMapView | null>(null)
+const mapError = ref('')
+const mapLoading = ref(false)
+const mapOpen = ref(false)
+const dialogHeight = ref(560)
+let lastMapAt = 0
+
+// The map comes through Xiaomi Home for now; over Roborock's MQTT it is a separate encrypted frame.
+const mapAvailable = computed(() => props.device.supported && props.device.provider === 'xiaomi')
 
 function messageOf(error: unknown, fallback: string) {
   const fetchError = error as { data?: { statusMessage?: string; message?: string }; message?: string }
@@ -72,6 +92,46 @@ async function send(action: VacuumAction, value?: number) {
   }
 }
 
+async function loadMap() {
+  if (!mapAvailable.value || mapLoading.value) {
+    return
+  }
+  mapLoading.value = true
+  try {
+    map.value = await $fetch<VacuumMapView>(`/api/smart-home/devices/${props.device.id}/map`)
+    mapError.value = ''
+    lastMapAt = Date.now()
+  } catch (error) {
+    mapError.value = messageOf(error, 'The map could not be loaded.')
+  } finally {
+    mapLoading.value = false
+  }
+}
+
+function openMap() {
+  dialogHeight.value = Math.max(240, Math.round(window.innerHeight * 0.72))
+  mapOpen.value = true
+}
+
+function onDialogKey(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    mapOpen.value = false
+  }
+}
+
+watch(mapOpen, open => {
+  document.body.style.overflow = open ? 'hidden' : ''
+  if (open) {
+    window.addEventListener('keydown', onDialogKey)
+  } else {
+    window.removeEventListener('keydown', onDialogKey)
+  }
+})
+
+const mapTime = computed(() =>
+  map.value ? new Date(map.value.fetchedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''
+)
+
 function onFanChange(event: Event) {
   const value = Number((event.target as HTMLSelectElement).value)
   if (Number.isFinite(value)) {
@@ -84,6 +144,9 @@ function startPolling() {
   timer = setInterval(() => {
     if (document.visibilityState === 'visible') {
       refresh()
+      if (status.value?.active && Date.now() - lastMapAt > MAP_ACTIVE_MS) {
+        loadMap()
+      }
     }
   }, POLL_MS)
 }
@@ -103,6 +166,7 @@ function onVisibility() {
 
 onMounted(() => {
   refresh(true)
+  loadMap()
   startPolling()
   document.addEventListener('visibilitychange', onVisibility)
 })
@@ -113,6 +177,8 @@ onBeforeUnmount(() => {
     clearTimeout(settle)
   }
   document.removeEventListener('visibilitychange', onVisibility)
+  window.removeEventListener('keydown', onDialogKey)
+  document.body.style.overflow = ''
 })
 
 const batteryTone = computed(() => {
@@ -241,9 +307,9 @@ const parts = computed(() =>
 
       <p v-if="errorMessage" class="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ errorMessage }}</p>
 
-      <div v-if="parts.length || summary" class="grid gap-6 border-t ghost-divider pt-5 sm:grid-cols-2">
-        <div v-if="parts.length" class="space-y-3">
-          <p class="eyebrow">Parts, life left</p>
+      <div v-if="parts.length || summary || mapAvailable" class="grid gap-6 border-t ghost-divider pt-5 sm:grid-cols-2">
+        <div v-if="parts.length || mapAvailable" class="space-y-3">
+          <p v-if="parts.length" class="eyebrow">Parts, life left</p>
           <div v-for="part in parts" :key="part.label" class="space-y-1">
             <div class="flex justify-between text-sm">
               <span>{{ part.label }}</span>
@@ -256,6 +322,23 @@ const parts = computed(() =>
                 :style="{ width: `${part.value}%` }"
               />
             </div>
+          </div>
+
+          <div v-if="mapAvailable" class="space-y-2" :class="parts.length ? 'pt-3' : ''">
+            <p class="eyebrow">Map</p>
+            <button
+              v-if="map"
+              type="button"
+              class="block w-full rounded-soft bg-surface-low p-2 transition-colors hover:bg-surface-high"
+              title="Open the map"
+              @click="openMap"
+            >
+              <SmartHomeVacuumMap :map="map" :max-height="170" />
+            </button>
+            <p v-else class="rounded-soft bg-surface-low px-4 py-6 text-center text-xs text-muted">
+              {{ mapLoading ? 'Loading the map…' : mapError || 'No map yet.' }}
+            </p>
+            <p v-if="map" class="text-xs text-muted">Click to enlarge · updated {{ mapTime }}</p>
           </div>
         </div>
         <div v-if="summary" class="space-y-3">
@@ -279,5 +362,54 @@ const parts = computed(() =>
 
       <p v-if="checked" class="text-xs text-muted">Checked at {{ checked }} · refreshes every {{ POLL_MS / 1000 }} s while this page is open</p>
     </template>
+
+    <Teleport to="body">
+      <div
+        v-if="mapOpen && map"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-3 sm:p-6"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="`Map of ${device.name}`"
+        @click.self="mapOpen = false"
+      >
+        <div class="max-h-full w-full max-w-5xl space-y-4 overflow-auto rounded-panel bg-surface p-5 text-ink shadow-ambient sm:p-6">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="eyebrow">Map</p>
+              <h3 class="mt-1 font-display text-2xl font-bold tracking-[-0.04em]">{{ device.name }}</h3>
+            </div>
+            <div class="flex gap-2">
+              <button
+                class="rounded-full bg-surface-low p-2 text-muted transition hover:text-ink disabled:opacity-50"
+                :disabled="mapLoading"
+                title="Refresh the map"
+                @click="loadMap"
+              >
+                <RefreshCw class="h-4 w-4" :class="mapLoading ? 'animate-spin' : ''" />
+              </button>
+              <button class="rounded-full bg-surface-low p-2 text-muted transition hover:text-ink" title="Close" @click="mapOpen = false">
+                <X class="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <SmartHomeVacuumMap :map="map" :max-height="dialogHeight" />
+
+          <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted">
+            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-ink" /> Robot</span>
+            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-green-600" /> Dock</span>
+            <span class="flex items-center gap-1.5"><span class="h-0.5 w-4 bg-ink/50" /> Last run</span>
+            <span v-if="map.noGo.length || map.walls.length" class="flex items-center gap-1.5">
+              <span class="h-2.5 w-2.5 rounded-sm border border-rose-600 bg-rose-600/15" /> No-go
+            </span>
+            <span v-if="map.noMop.length" class="flex items-center gap-1.5">
+              <span class="h-2.5 w-2.5 rounded-sm border border-purple-600 bg-purple-600/15" /> No mopping
+            </span>
+            <span>{{ map.rooms.length }} {{ map.rooms.length === 1 ? 'room' : 'rooms' }} · updated {{ mapTime }}</span>
+          </div>
+          <p v-if="mapError" class="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ mapError }}</p>
+        </div>
+      </div>
+    </Teleport>
   </PanelCard>
 </template>

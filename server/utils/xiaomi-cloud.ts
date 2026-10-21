@@ -1,3 +1,4 @@
+import { gunzipSync } from 'node:zlib'
 import {
   XIAOMI_SERVERS,
   decryptResponse,
@@ -317,3 +318,47 @@ export async function callXiaomiDevice(session: XiaomiSession, server: string, d
   }
   return result
 }
+
+/**
+ * The vacuum's current map file, as uploaded to Xiaomi's storage. The vacuum
+ * names it (get_map_v1, which sometimes answers "retry" while it uploads),
+ * the cloud signs a download URL for that name, and the file is gzip.
+ */
+export async function fetchXiaomiVacuumMap(session: XiaomiSession, server: string, did: string): Promise<Buffer> {
+  let name = ''
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const result = await callXiaomiDevice(session, server, did, 'get_map_v1')
+    const candidate = Array.isArray(result) ? result[0] : result
+    if (typeof candidate === 'string' && candidate && candidate !== 'retry') {
+      name = candidate
+      break
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)))
+  }
+  if (!name) {
+    throw new XiaomiCloudError('The vacuum has no map to share right now. Try again in a minute.', false, true)
+  }
+
+  const answer = await apiCall(session, server, '/home/getmapfileurl', { obj_name: name })
+  const url = (answer.result as { url?: unknown } | null)?.url
+  if (typeof url !== 'string' || !url.startsWith('https://')) {
+    throw new XiaomiCloudError('Xiaomi did not hand out a download link for the map.')
+  }
+
+  let file: Buffer
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(20_000) })
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+    file = Buffer.from(await response.arrayBuffer())
+  } catch (error) {
+    throw new XiaomiCloudError(`The map could not be downloaded: ${(error as Error).message}.`)
+  }
+  try {
+    return gunzipSync(file)
+  } catch {
+    throw new XiaomiCloudError('The map file was not in the expected format.')
+  }
+}
+

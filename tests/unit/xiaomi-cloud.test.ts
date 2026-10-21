@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { gzipSync } from 'node:zlib'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   decryptResponse,
@@ -9,7 +11,13 @@ import {
   xiaomiApiBase,
   xiaomiNonce
 } from '../../server/utils/xiaomi-cloud-protocol'
-import { XiaomiCloudError, callXiaomiDevice, findXiaomiVacuums, pollXiaomiQrLogin } from '../../server/utils/xiaomi-cloud'
+import {
+  XiaomiCloudError,
+  callXiaomiDevice,
+  fetchXiaomiVacuumMap,
+  findXiaomiVacuums,
+  pollXiaomiQrLogin
+} from '../../server/utils/xiaomi-cloud'
 import { xiaomiDeviceInputs } from '../../server/utils/smart-home-xiaomi'
 
 /**
@@ -182,3 +190,40 @@ describe('QR login', () => {
     expect(calls[2]!.cookie).toContain('step=1')
   })
 })
+
+describe('map download', () => {
+  const MAP = readFileSync(new URL('../fixtures/roborock-maps/s5_fw2008_with_segments.bin', import.meta.url))
+
+  it('asks the vacuum for its map name until it stops saying retry, then downloads and unzips the file', async () => {
+    const methods: string[] = []
+    let asked = 0
+    const cloud = fakeCloud((path, data) => {
+      if (path === '/home/rpc/987') {
+        methods.push(String(data.method))
+        asked += 1
+        return { code: 0, result: [asked === 1 ? 'retry' : 'robomap/42/987/0'] }
+      }
+      expect(path).toBe('/home/getmapfileurl')
+      expect(data).toEqual({ obj_name: 'robomap/42/987/0' })
+      return { code: 0, result: { url: 'https://files.example/map.gz?sig=1' } }
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL, init?: RequestInit) =>
+        String(input).startsWith('https://files.example/') ? new Response(gzipSync(MAP)) : cloud(input, init)
+      )
+    )
+    const raw = await fetchXiaomiVacuumMap(SESSION, 'de', '987')
+    expect(methods).toEqual(['get_map_v1', 'get_map_v1'])
+    expect(raw.equals(MAP)).toBe(true)
+  })
+
+  it('refuses a download link that is not https', async () => {
+    vi.stubGlobal(
+      'fetch',
+      fakeCloud(path => (path === '/home/getmapfileurl' ? { code: 0, result: { url: 'http://files.example/map.gz' } } : { code: 0, result: ['robomap/1'] }))
+    )
+    await expect(fetchXiaomiVacuumMap(SESSION, 'de', '987')).rejects.toThrow('download link')
+  })
+})
+

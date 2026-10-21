@@ -74,3 +74,26 @@ export interface SmartHomeOverview {
 }
 
 export type VacuumAction = 'start' | 'pause' | 'stop' | 'dock' | 'find' | 'fan'
+
+/**
+ * A vacuum's map, ready to draw: cropped to what was mapped, rows top-down,
+ * coordinates in pixels of the crop (one pixel is 5 cm).
+ */
+export interface VacuumMapView {
+  width: number
+  height: number
+  /** base64, one byte per pixel: 0 outside, 1 wall, 2 floor, 3 scanned, 4 obstacle, 16 + n room n. */
+  pixels: string
+  charger: [number, number] | null
+  /** x, y and heading in degrees. */
+  robot: [number, number, number] | null
+  /** Flattened x, y pairs of the current or last run. */
+  path: number[]
+  noGo: number[][]
+  noMop: number[][]
+  walls: number[][]
+  zones: number[][]
+  rooms: number[]
+  mapIndex: number
+  fetchedAt: string
+}
