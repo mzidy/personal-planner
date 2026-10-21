@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Check, Download } from 'lucide-vue-next'
 import type { ClaudemyCourseView, ClaudemyLessonRecord } from '~~/shared/types/claudemy'
-import { claudemyCardMarkdown, estimateClaudemyCost } from '~~/shared/utils/claudemy-check'
+import { claudemyCardMarkdown } from '~~/shared/utils/claudemy-check'
 import { CLAUDEMY_STAGES, claudemyStageIndex, isClaudemyWorking } from '~~/shared/utils/claudemy-stages'
 
 definePageMeta({
@@ -123,7 +123,6 @@ const stageDetail = computed(() => {
   }
 })
 
-const cost = computed(() => (course.value ? estimateClaudemyCost(course.value) : 0))
 
 // ---------------------------------------------------------------- lessons
 
@@ -292,6 +291,17 @@ function pageBySeq(seq: number) {
   </div>
 
   <div v-else class="space-y-8">
+    <!-- Usage stays in view while the course is being built: it moves after every step. -->
+    <div class="pointer-events-none sticky top-24 z-20 -mb-4 flex justify-end">
+      <ClaudemyUsageMeter
+        class="pointer-events-auto"
+        :input-tokens="course.inputTokens"
+        :output-tokens="course.outputTokens"
+        :web-searches="course.webSearches"
+        :running="running && !course.error"
+      />
+    </div>
+
     <AppPageHero
       :eyebrow="`Claudemy · ${course.level}${course.person ? ` · from ${course.person}` : ''}`"
       :title="course.topic"
@@ -305,7 +315,6 @@ function pageBySeq(seq: number) {
     >
       <template #aside>
         <div class="flex flex-col items-start gap-2 text-sm md:items-end">
-          <span class="text-muted">≈ ${{ cost.toFixed(2) }} of API usage · {{ course.webSearches }} searches</span>
           <div class="flex gap-2">
             <NuxtLink to="/learning/claudemy" class="rounded-full bg-surface-low px-4 py-2 font-semibold text-ink">
               All courses
