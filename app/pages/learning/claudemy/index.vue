@@ -10,6 +10,18 @@ useHead({ title: 'Claudemy' })
 
 const { data: courses } = await usePlannerFetch<ClaudemyCourseSummary[]>('claudemy-courses', '/api/learning/claudemy/courses')
 
+/** What every course together has used so far. */
+const totals = computed(() =>
+  (courses.value || []).reduce(
+    (sum, course) => ({
+      inputTokens: sum.inputTokens + course.inputTokens,
+      outputTokens: sum.outputTokens + course.outputTokens,
+      webSearches: sum.webSearches + course.webSearches
+    }),
+    { inputTokens: 0, outputTokens: 0, webSearches: 0 }
+  )
+)
+
 const form = reactive({
   topic: '',
   level: 'beginner' as ClaudemyLevel,
@@ -69,6 +81,16 @@ function formatDay(value: string) {
 
 <template>
   <div class="space-y-8">
+    <div class="pointer-events-none sticky top-24 z-20 -mb-4 flex justify-end">
+      <ClaudemyUsageMeter
+        class="pointer-events-auto"
+        label="All courses"
+        :input-tokens="totals.inputTokens"
+        :output-tokens="totals.outputTokens"
+        :web-searches="totals.webSearches"
+      />
+    </div>
+
     <AppPageHero
       eyebrow="AI Learning · Claudemy"
       title="Any topic, as a short audio course."
@@ -150,7 +172,7 @@ function formatDay(value: string) {
       <PanelCard class="space-y-4">
         <div>
           <p class="eyebrow">Courses</p>
-          <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">{{ courses?.length || 0 }} courses</h2>
+          <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">{{ courses?.length || 0 }} {{ courses?.length === 1 ? 'course' : 'courses' }}</h2>
         </div>
         <p v-if="!courses?.length" class="text-sm text-muted">No courses yet. Start one on the left.</p>
         <div v-else class="space-y-3">

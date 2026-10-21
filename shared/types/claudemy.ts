@@ -189,6 +189,9 @@ export interface ClaudemyCourseSummary {
   lessonCount: number
   lessonsWritten: number
   lessonsHeard: number
+  inputTokens: number
+  outputTokens: number
+  webSearches: number
   updatedAt: string
 }
 

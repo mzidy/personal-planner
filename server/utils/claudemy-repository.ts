@@ -87,6 +87,9 @@ export function useClaudemyRepository() {
         lessonCount: row.course.lessonCount,
         lessonsWritten: Number(row.lessonsWritten ?? 0),
         lessonsHeard: Number(row.lessonsHeard ?? 0),
+        inputTokens: row.course.inputTokens,
+        outputTokens: row.course.outputTokens,
+        webSearches: row.course.webSearches,
         updatedAt: row.course.updatedAt
       }))
     },
