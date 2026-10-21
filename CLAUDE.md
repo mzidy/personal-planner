@@ -114,6 +114,12 @@ A vacuum can live in either app, and both paths carry the same miio commands
   (`roborock.vacuum.*`, `rockrobo.vacuum.*`) are controlled; other models in
   Xiaomi Home use MIoT and are listed as unsupported.
 
+The map is the vacuum's own RRMap file (Xiaomi: `get_map_v1` names it,
+`/home/getmapfileurl` signs a download), parsed in `server/utils/roborock-map.ts`
+and drawn on a canvas by the page. The parser is tested against real S5/S6 maps
+in `tests/fixtures/roborock-maps/` with python-roborock's expected values. Over
+Roborock's MQTT the map arrives as a separate encrypted frame, not wired up yet.
+
 Both protocol modules are checked byte for byte in tests against vectors
 computed independently from the reference implementations (python-roborock,
 Xiaomi-cloud-tokens-extractor); change them only with a new vector.

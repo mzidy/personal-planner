@@ -2,7 +2,7 @@ import type { SmartHomeProvider } from '~~/shared/types/smart-home'
 import { RoborockApiError } from '~~/server/utils/roborock-api'
 import { RoborockDeviceError, type RoborockCall, callRoborockSettled } from '~~/server/utils/roborock-mqtt'
 import { useSmartHomeRepository } from '~~/server/utils/smart-home-repository'
-import { XiaomiCloudError, callXiaomiDevice } from '~~/server/utils/xiaomi-cloud'
+import { XiaomiCloudError, callXiaomiDevice, fetchXiaomiVacuumMap } from '~~/server/utils/xiaomi-cloud'
 
 /**
  * One way to talk to a vacuum, whichever app it lives in. Both paths carry
@@ -14,6 +14,8 @@ export interface VacuumLink {
   provider: SmartHomeProvider
   /** Every call's own outcome; only failing to reach the cloud at all throws. */
   run: (calls: RoborockCall[]) => Promise<PromiseSettledResult<unknown>[]>
+  /** The raw RRMap bytes, where this connection can fetch them (Xiaomi Home for now). */
+  fetchMap: (() => Promise<Buffer>) | null
 }
 
 function reconnect(provider: SmartHomeProvider) {
@@ -48,7 +50,8 @@ export async function resolveVacuum(userId: string, deviceId: string): Promise<V
           calls.map(call =>
             callXiaomiDevice(session, account.country, device.duid, call.method, Array.isArray(call.params) ? call.params : [])
           )
-        )
+        ),
+      fetchMap: () => fetchXiaomiVacuumMap(session, account.country, device.duid)
     }
   }
 
@@ -63,7 +66,13 @@ export async function resolveVacuum(userId: string, deviceId: string): Promise<V
   if (!session || !localKey) {
     throw reconnect(provider)
   }
-  return { device, provider, run: calls => callRoborockSettled({ duid: device.duid, localKey, rriot: session.rriot }, calls) }
+  return {
+    device,
+    provider,
+    run: calls => callRoborockSettled({ duid: device.duid, localKey, rriot: session.rriot }, calls),
+    // Over Roborock's MQTT the map arrives as a separate encrypted frame; not wired up yet.
+    fetchMap: null
+  }
 }
 
 /** Provider failures as HTTP errors the page can show as they are. */
