@@ -1,8 +1,13 @@
+import type { Gender } from '../utils/profile'
+
 export interface StatsProfileRecord {
   id: string
   userId: string
   heightCm: number | null
   targetWeightKg: number | null
+  gender: Gender | null
+  /** YYYY-MM-DD */
+  birthDate: string | null
   createdAt: string
   updatedAt: string
 }

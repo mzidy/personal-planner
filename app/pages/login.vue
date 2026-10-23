@@ -153,6 +153,10 @@ async function resetDemoWorkspace() {
       <p v-if="route.query.oauth === 'workspace-locked'" class="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
         This single-user workspace is already claimed. Sign in with the original owner account.
       </p>
+      <p v-if="route.query.oauth === 'email-unverified'" class="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        An account with this Google email already exists and was made with a password. Sign in with that
+        password instead.
+      </p>
       <p v-if="errorMessage" class="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
         {{ errorMessage }}
       </p>
@@ -203,7 +207,9 @@ async function resetDemoWorkspace() {
 
     <div class="flex items-center justify-between text-sm text-muted">
       <NuxtLink class="hover:text-ink" to="/forgot-password">Forgot password?</NuxtLink>
-      <NuxtLink class="hover:text-ink" to="/register">Need to initialize the workspace?</NuxtLink>
+      <NuxtLink class="hover:text-ink" to="/register">
+        {{ bootstrap?.singleUserMode === false ? 'Create an account' : 'Need to initialize the workspace?' }}
+      </NuxtLink>
     </div>
   </div>
 </template>

@@ -215,13 +215,14 @@ export function usePlannerRepository() {
     async getBootstrap() {
       const db = useDatabase()
       const config = useRuntimeConfig()
-      const users = await db.select().from(tables.users)
+      // Two rows are enough to tell "only the demo account" from everything else.
+      const users = await db.select({ email: tables.users.email }).from(tables.users).limit(2)
       const demoBootstrapEligible = users.length === 1 && users[0]?.email === config.demoUserEmail
 
       return {
         demoMode: demoBootstrapEligible,
         singleUserMode: config.singleUserMode,
-        canRegister: users.length === 0 || demoBootstrapEligible,
+        canRegister: !config.singleUserMode || users.length === 0 || demoBootstrapEligible,
         demoCredentials: demoBootstrapEligible
           ? {
               email: config.demoUserEmail,

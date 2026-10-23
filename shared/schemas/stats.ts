@@ -1,8 +1,11 @@
 import { z } from 'zod'
+import { birthDateSchema, genderSchema } from './auth'
 
 export const statsProfileSchema = z.object({
   heightCm: z.number().min(80).max(260).nullable().optional(),
-  targetWeightKg: z.number().min(25).max(400).nullable().optional()
+  targetWeightKg: z.number().min(25).max(400).nullable().optional(),
+  gender: genderSchema.nullable().optional(),
+  birthDate: birthDateSchema.nullable().optional()
 })
 
 export const weighInSchema = z.object({

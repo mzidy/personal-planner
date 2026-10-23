@@ -1,5 +1,5 @@
 import { loginSchema } from '~~/shared/schemas/auth'
-import { establishSession } from '~~/server/utils/auth-session'
+import { establishSession, toSessionUser } from '~~/server/utils/auth-session'
 
 export default defineEventHandler(async event => {
   await assertRateLimit(event, 'login', 6, 60_000)
@@ -30,7 +30,8 @@ export default defineEventHandler(async event => {
   await repository.createAuditEvent(user.id, 'login', 'session', null, { provider: 'password' })
   await establishSession(event, user, 'password')
 
+  // The session's view of the user: never the password hash.
   return {
-    user
+    user: toSessionUser(user)
   }
 })

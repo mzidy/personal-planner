@@ -85,6 +85,11 @@ query, so a 200 there is not evidence that the database works. Check
   with unit tests, not inline in a component.
 - `useFetch` data is a shallow ref. Replace `data.value` with a new object;
   mutating a nested field saves nothing visible.
+- Registration is open (`singleUserMode` is off), so the database holds other
+  people's accounts. Every read and write of a user's row filters by
+  `userId`; an update or delete by id alone is only allowed right after a
+  lookup that did. A route without `requireAppUser` must never touch data
+  that belongs to anyone.
 
 ## Claude features
 
