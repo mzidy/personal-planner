@@ -127,6 +127,13 @@
       "when": 1792572880621,
       "tag": "0017_equal_blur",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1792743897802,
+      "tag": "0018_fuzzy_pandemic",
+      "breakpoints": true
     }
   ]
 }

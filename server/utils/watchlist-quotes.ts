@@ -1,4 +1,6 @@
+import type { CloseOnDate } from '~~/shared/types/trades'
 import type { WatchlistQuote } from '~~/shared/types/watchlist'
+import { closeOnDate, isoDay } from '~~/shared/utils/trades'
 import { type YahooChartResult, readWatchlistQuote } from '~~/shared/utils/watchlist'
 
 /**
@@ -39,4 +41,38 @@ export async function fetchWatchlistQuote(symbol: string): Promise<WatchlistQuot
   const quote = readWatchlistQuote(symbol, result)
   cache.set(symbol, { quote, expiresAt: Date.now() + CACHE_TTL_MS })
   return quote
+}
+
+const closeCache = new Map<string, { close: CloseOnDate; expiresAt: number }>()
+
+/**
+ * The close of the last trading day on or before `date` (YYYY-MM-DD), used to
+ * price a fill or what a sold stock was worth on a given day. Two weeks of
+ * bars before the date cover any holiday run.
+ */
+export async function fetchCloseOnDate(symbol: string, date: string): Promise<CloseOnDate> {
+  const key = `${symbol}:${date}`
+  const cached = closeCache.get(key)
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.close
+  }
+
+  const day = Date.parse(`${date}T00:00:00Z`) / 1000
+  const response = await $fetch<YahooChart>(`${YAHOO_CHART}/${encodeURIComponent(symbol)}`, {
+    query: { period1: day - 14 * 86_400, period2: day + 2 * 86_400, interval: '1d' },
+    headers: YAHOO_HEADERS,
+    timeout: 12000,
+    retry: 1
+  }).catch(() => null)
+
+  const result = response?.chart?.result?.[0]
+  const found = result ? closeOnDate(result, date) : null
+  if (!found) {
+    throw createError({ statusCode: 404, statusMessage: `No close found for ${symbol} on or before ${date}.` })
+  }
+
+  const close: CloseOnDate = { symbol, ...found, currency: result?.meta?.currency || 'USD' }
+  // A past close is settled; today's is still moving.
+  closeCache.set(key, { close, expiresAt: Date.now() + (found.date < isoDay() ? 6 * 3600_000 : CACHE_TTL_MS) })
+  return close
 }

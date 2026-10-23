@@ -551,3 +551,46 @@ export const watchlistItems = sqliteTable(
   },
   table => [uniqueIndex('watchlist_items_user_symbol').on(table.userId, table.symbol)]
 )
+
+// Active trades (Finance → Active trades). Prices are in each stock's own
+// currency, which is recorded with the name when the row is saved.
+export const stockExchanges = sqliteTable('stock_exchanges', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  soldSymbol: text('sold_symbol').notNull(),
+  soldName: text('sold_name').notNull(),
+  soldCurrency: text('sold_currency').notNull(),
+  soldPrice: real('sold_price').notNull(),
+  soldDate: text('sold_date').notNull(),
+  soldQuantity: real('sold_quantity').notNull(),
+  boughtSymbol: text('bought_symbol').notNull(),
+  boughtName: text('bought_name').notNull(),
+  boughtCurrency: text('bought_currency').notNull(),
+  boughtPrice: real('bought_price').notNull(),
+  boughtDate: text('bought_date').notNull(),
+  boughtQuantity: real('bought_quantity').notNull(),
+  note: text('note').notNull().default(''),
+  closedDate: text('closed_date'),
+  closedBoughtPrice: real('closed_bought_price'),
+  closedSoldPrice: real('closed_sold_price'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull()
+})
+
+export const stockTrades = sqliteTable('stock_trades', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  symbol: text('symbol').notNull(),
+  name: text('name').notNull(),
+  currency: text('currency').notNull(),
+  quantity: real('quantity').notNull(),
+  entryPrice: real('entry_price').notNull(),
+  entryDate: text('entry_date').notNull(),
+  targetPrice: real('target_price'),
+  stopPrice: real('stop_price'),
+  note: text('note').notNull().default(''),
+  exitPrice: real('exit_price'),
+  exitDate: text('exit_date'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull()
+})
