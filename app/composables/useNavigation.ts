@@ -1,3 +1,4 @@
+import type { Component } from 'vue'
 import {
   ArrowLeftRight,
   Bot,
@@ -43,10 +44,77 @@ const BASIC_HIDDEN_ROUTES = new Set([
   '/calendar'
 ])
 
+export interface NavItem {
+  label: string
+  /** A shorter label for the Lavender top bar. */
+  short?: string
+  to: string
+  icon: Component
+  match?: string[]
+  /** The AI entries, drawn apart from the rest. */
+  accent?: boolean
+  children?: NavItem[]
+}
+
+/**
+ * The teen themes' menu, worded as in their designs. It reaches the same
+ * pages, without the investing tools, and is never cut down by basic view.
+ */
+function teenNavigation(aiLabel: string): NavItem[] {
+  return [
+    { label: 'Home', to: '/dashboard', icon: LayoutDashboard },
+    {
+      label: 'Homework',
+      to: '/priorities',
+      icon: Target,
+      children: [
+        { label: 'Homework', to: '/priorities', icon: Target },
+        { label: 'Daily routine', to: '/priorities/routine', icon: Repeat }
+      ]
+    },
+    { label: 'Goals', to: '/goals', icon: Trophy },
+    {
+      label: 'Pocket money',
+      to: '/finance',
+      icon: PiggyBank,
+      children: [
+        { label: 'Overview', to: '/finance', icon: Wallet },
+        { label: 'Income', to: '/finance/income', icon: Landmark },
+        { label: 'Expenses', to: '/finance/expenses', icon: ReceiptText }
+      ]
+    },
+    { label: 'Sport & health', to: '/stats', icon: HeartPulse },
+    { label: 'Shopping list', to: '/shopping', icon: ShoppingCart },
+    { label: 'Calendar', to: '/calendar', icon: CalendarDays },
+    {
+      label: 'Journal',
+      to: '/diary',
+      icon: BookOpen,
+      children: [
+        { label: 'Journal', to: '/diary', icon: BookOpen },
+        { label: 'Notes', to: '/diary/notes', icon: StickyNote },
+        { label: 'Import', to: '/diary/import', icon: ImageUp }
+      ]
+    },
+    { label: 'Smart Home', to: '/smart-home', icon: House },
+    { label: aiLabel, to: '/assistant', icon: Bot, accent: true },
+    {
+      label: 'Learn with AI',
+      to: '/learning',
+      icon: GraduationCap,
+      children: [
+        { label: 'Notebook', to: '/learning', icon: GraduationCap },
+        { label: 'Claudemy', to: '/learning/claudemy', icon: Headphones, match: ['/learning/claudemy'] }
+      ]
+    }
+  ]
+}
+
 export function useNavigation() {
   const { isBasic } = useViewMode()
+  const { theme, isTeen } = useAppTheme()
 
-  const all = [
+  const all: NavItem[] = [
     { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
     {
       label: 'Finance',
@@ -86,6 +154,7 @@ export function useNavigation() {
     },
     {
       label: 'Personal stats',
+      short: 'Stats',
       to: '/stats',
       icon: HeartPulse,
       children: [
@@ -93,7 +162,7 @@ export function useNavigation() {
         { label: 'Personal Growth', to: '/stats/growth', icon: Sprout }
       ]
     },
-    { label: 'Shopping list', to: '/shopping', icon: ShoppingCart },
+    { label: 'Shopping list', short: 'Shopping', to: '/shopping', icon: ShoppingCart },
     { label: 'Calendar', to: '/calendar', icon: CalendarDays },
     {
       label: 'Diary',
@@ -120,6 +189,9 @@ export function useNavigation() {
   ]
 
   return computed(() => {
+    if (isTeen.value) {
+      return teenNavigation(theme.value === 'chrome' ? 'Study buddy ✦' : 'AI Buddy')
+    }
     if (!isBasic.value) {
       return all
     }

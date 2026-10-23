@@ -597,3 +597,19 @@ export const stockTrades = sqliteTable('stock_trades', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull()
 })
+
+// One savings goal per user, shown on the teen home pages ("Skateboard fund").
+export const savingsGoals = sqliteTable(
+  'savings_goals',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    targetAmount: real('target_amount').notNull(),
+    savedAmount: real('saved_amount').notNull().default(0),
+    weeklyAllowance: real('weekly_allowance'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull()
+  },
+  table => [uniqueIndex('savings_goals_user').on(table.userId)]
+)

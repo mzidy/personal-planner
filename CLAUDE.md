@@ -133,3 +133,20 @@ The Roborock session and device keys are sealed with a key derived from
 `NUXT_SESSION_PASSWORD` (`server/utils/secret-box.ts`). Rotating that password
 logs the account out here, and it has to be connected again. Only "1.0"
 (V1) devices are supported; A01/B01/L01 devices are listed but not controlled.
+
+## Themes (audience designs)
+
+The look follows the profile under Personal stats: girls under 18 get Y2K
+Chrome, boys under 18 Skate Teal, women 18+ Lavender Glass, men 18+ Graphite
+Pro (dark); no gender, "other" or "prefer not to say" keep the original
+Executive. The palette button in every header (the "switch") overrides it
+per browser via the `serene-theme` cookie. Rules live in
+`shared/utils/themes.ts`; the designs themselves are in `ui-predlogi/`.
+
+- The default layout sets `data-theme` on `<html>`; `main.css` retunes the
+  colour and font tokens per theme, so ordinary pages need no theme code.
+  Graphite is dark: `bg-ink` (white text on ink) is turned into the accent
+  there, so keep using the tokens rather than raw colours.
+- Each theme has its own shell (`components/shell/*`) and home page
+  (`components/home/*`, data from `useHome()`). Teen themes rename the menu
+  (Homework, Pocket money…) in `useNavigation`.
