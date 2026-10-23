@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   Bot,
   BookOpen,
   GraduationCap,
@@ -34,6 +35,7 @@ const BASIC_HIDDEN_ROUTES = new Set([
   '/finance/income',
   '/finance/expenses',
   '/finance/portfolio',
+  '/finance/trades',
   '/investments',
   '/goals',
   '/stats',
@@ -59,6 +61,7 @@ export function useNavigation() {
         { label: 'Income', to: '/finance/income', icon: Landmark },
         { label: 'Expenses', to: '/finance/expenses', icon: ReceiptText },
         { label: 'Portfolio management', to: '/finance/portfolio', icon: Scale },
+        { label: 'Active trades', to: '/finance/trades', icon: ArrowLeftRight },
         { label: 'Investments', to: '/investments', icon: CandlestickChart, match: ['/investments'] },
         { label: 'Investment calculator', to: '/investments/calculator', icon: Calculator }
       ]

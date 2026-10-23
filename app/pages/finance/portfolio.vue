@@ -10,16 +10,6 @@ const { data: overview, refresh } = await usePlannerFetch<PortfolioOverview>(
   '/api/portfolio/overview'
 )
 
-const TABS = [
-  { label: 'Overview', to: '/finance' },
-  { label: 'Investing', to: '/finance/investing' },
-  { label: 'Income', to: '/finance/income' },
-  { label: 'Expenses', to: '/finance/expenses' },
-  { label: 'Portfolio management', to: '/finance/portfolio' }
-]
-
-const route = useRoute()
-
 const form = reactive({
   name: '',
   description: '',
@@ -109,17 +99,7 @@ async function deleteRule(rule: PortfolioRuleRecord) {
       </template>
     </AppPageHero>
 
-    <div class="flex flex-wrap items-center gap-2">
-      <NuxtLink
-        v-for="tab in TABS"
-        :key="tab.to"
-        :to="tab.to"
-        class="rounded-full px-4 py-2 text-sm font-semibold transition-colors"
-        :class="route.path === tab.to ? 'bg-ink text-white' : 'bg-surface-low text-ink hover:bg-surface'"
-      >
-        {{ tab.label }}
-      </NuxtLink>
-    </div>
+    <FinanceTabs />
 
     <p v-if="errorMessage" class="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
       {{ errorMessage }}

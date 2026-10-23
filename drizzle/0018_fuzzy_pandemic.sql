@@ -1,0 +1,42 @@
+CREATE TABLE `stock_exchanges` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
+	`sold_symbol` text NOT NULL,
+	`sold_name` text NOT NULL,
+	`sold_currency` text NOT NULL,
+	`sold_price` real NOT NULL,
+	`sold_date` text NOT NULL,
+	`sold_quantity` real NOT NULL,
+	`bought_symbol` text NOT NULL,
+	`bought_name` text NOT NULL,
+	`bought_currency` text NOT NULL,
+	`bought_price` real NOT NULL,
+	`bought_date` text NOT NULL,
+	`bought_quantity` real NOT NULL,
+	`note` text DEFAULT '' NOT NULL,
+	`closed_date` text,
+	`closed_bought_price` real,
+	`closed_sold_price` real,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE TABLE `stock_trades` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
+	`symbol` text NOT NULL,
+	`name` text NOT NULL,
+	`currency` text NOT NULL,
+	`quantity` real NOT NULL,
+	`entry_price` real NOT NULL,
+	`entry_date` text NOT NULL,
+	`target_price` real,
+	`stop_price` real,
+	`note` text DEFAULT '' NOT NULL,
+	`exit_price` real,
+	`exit_date` text,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
+);
