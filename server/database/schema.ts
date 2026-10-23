@@ -290,6 +290,9 @@ export const statsProfiles = sqliteTable(
     userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     heightCm: real('height_cm'),
     targetWeightKg: real('target_weight_kg'),
+    // Asked at registration; both optional, and editable under Personal stats.
+    gender: text('gender'),
+    birthDate: text('birth_date'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull()
   },

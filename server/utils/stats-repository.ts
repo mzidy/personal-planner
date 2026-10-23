@@ -55,6 +55,8 @@ export function useStatsRepository() {
         const patch = {
           heightCm: input.heightCm === undefined ? existing.heightCm : input.heightCm,
           targetWeightKg: input.targetWeightKg === undefined ? existing.targetWeightKg : input.targetWeightKg,
+          gender: input.gender === undefined ? existing.gender : input.gender,
+          birthDate: input.birthDate === undefined ? existing.birthDate : input.birthDate,
           updatedAt: timestamp
         }
         await db.update(tables.statsProfiles).set(patch).where(eq(tables.statsProfiles.id, existing.id))
@@ -66,6 +68,8 @@ export function useStatsRepository() {
         userId,
         heightCm: input.heightCm ?? null,
         targetWeightKg: input.targetWeightKg ?? null,
+        gender: input.gender ?? null,
+        birthDate: input.birthDate ?? null,
         createdAt: timestamp,
         updatedAt: timestamp
       }

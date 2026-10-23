@@ -49,7 +49,9 @@ export default defineNuxtConfig({
     tursoAuthToken: process.env.TURSO_AUTH_TOKEN || '',
     anthropicApiKey: '',
     appOrigin: 'http://localhost:4000',
-    singleUserMode: true,
+    // Off: anyone can register, and every account sees only its own data. On,
+    // registration closes once the first account exists.
+    singleUserMode: false,
     demoUserEmail: 'founder@serene-executive.app',
     demoUserPassword: 'ConciergeDemo123!',
     oauth: {

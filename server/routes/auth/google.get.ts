@@ -5,8 +5,19 @@ export default defineOAuthGoogleEventHandler({
     const repository = usePlannerRepository()
     const config = useRuntimeConfig()
 
-    let appUser =
-      (await repository.findUserByIdentity('google', user.sub)) || (user.email ? await repository.findUserByEmail(user.email) : null)
+    let appUser = await repository.findUserByIdentity('google', user.sub)
+
+    if (!appUser && user.email) {
+      const byEmail = await repository.findUserByEmail(user.email)
+      // Registration is open and nothing confirms the email it was given, so an
+      // unverified account with this address may have been set up by someone
+      // else, who knows its password. Linking Google to it would sign the real
+      // owner of the address into that account.
+      if (byEmail && !byEmail.emailVerified) {
+        return sendRedirect(event, '/login?oauth=email-unverified')
+      }
+      appUser = byEmail
+    }
 
     if (!appUser) {
       const existingUsers = await repository.countUsers()

@@ -7,6 +7,7 @@ import {
   parseWeight,
   todayIso
 } from '~~/shared/utils/weigh-in'
+import { GENDERS, GENDER_LABELS, ageOn, type Gender } from '~~/shared/utils/profile'
 import StatsWeightTrendChart from '~/components/stats/WeightTrendChart.vue'
 
 definePageMeta({
@@ -30,7 +31,11 @@ const savingWeighIn = ref(false)
 
 const heightInput = ref('')
 const targetInput = ref('')
+const genderInput = ref<Gender | ''>('')
+const birthInput = ref('')
 const savingProfile = ref(false)
+
+const age = computed(() => (overview.value?.profile?.birthDate ? ageOn(overview.value.profile.birthDate, todayIso()) : null))
 
 const errorMessage = ref('')
 
@@ -39,6 +44,8 @@ watch(
   value => {
     heightInput.value = value?.profile?.heightCm != null ? String(value.profile.heightCm) : ''
     targetInput.value = value?.profile?.targetWeightKg != null ? String(value.profile.targetWeightKg) : ''
+    genderInput.value = value?.profile?.gender ?? ''
+    birthInput.value = value?.profile?.birthDate ?? ''
   },
   { immediate: true }
 )
@@ -56,12 +63,15 @@ async function saveProfile() {
       method: 'POST',
       body: {
         heightCm: heightInput.value.trim() ? Number(heightInput.value) : null,
-        targetWeightKg: targetInput.value.trim() ? Number(targetInput.value) : null
+        targetWeightKg: targetInput.value.trim() ? Number(targetInput.value) : null,
+        gender: genderInput.value || null,
+        birthDate: birthInput.value || null
       }
     })
     await refresh()
-  } catch {
-    errorMessage.value = 'Unable to save your profile. Check the values and try again.'
+  } catch (error) {
+    const fetchError = error as { data?: { statusMessage?: string } }
+    errorMessage.value = fetchError?.data?.statusMessage || 'Unable to save your profile. Check the values and try again.'
   } finally {
     savingProfile.value = false
   }
@@ -299,6 +309,11 @@ function formatWeek(weekKey: string) {
         <div>
           <p class="eyebrow">Body profile</p>
           <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">Height &amp; target</h2>
+          <p v-if="age !== null || overview.profile?.gender" class="mt-1 text-sm text-muted">
+            <template v-if="overview.profile?.gender">{{ GENDER_LABELS[overview.profile.gender] }}</template>
+            <template v-if="age !== null && overview.profile?.gender"> · </template>
+            <template v-if="age !== null">{{ age }} years old</template>
+          </p>
         </div>
         <form class="space-y-3" @submit.prevent="saveProfile">
           <label class="block">
@@ -325,6 +340,19 @@ function formatWeek(weekKey: string) {
               placeholder="78"
             />
           </label>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="block">
+              <span class="eyebrow">Gender</span>
+              <select v-model="genderInput" class="mt-2 w-full rounded-2xl bg-surface-low px-4 py-3 outline-none">
+                <option value="">Not set</option>
+                <option v-for="gender in GENDERS" :key="gender" :value="gender">{{ GENDER_LABELS[gender] }}</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="eyebrow">Date of birth</span>
+              <input v-model="birthInput" class="mt-2 w-full rounded-2xl bg-surface-low px-4 py-3 outline-none" type="date" />
+            </label>
+          </div>
           <button
             class="w-full rounded-full bg-surface-low px-5 py-3 font-semibold text-ink disabled:opacity-50"
             :disabled="savingProfile"
