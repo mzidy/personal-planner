@@ -28,8 +28,8 @@ const toneClass = computed(() => {
 <template>
   <component
     :is="as"
-    class="rounded-panel transition-all duration-200"
-    :class="[toneClass, padded ? 'p-6 md:p-8' : '']"
+    class="panel-card rounded-panel transition-all duration-200"
+    :class="[toneClass, `panel-card--${tone}`, padded ? 'p-6 md:p-8' : '']"
   >
     <slot />
   </component>

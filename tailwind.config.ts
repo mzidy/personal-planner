@@ -33,8 +33,9 @@ export default <Partial<Config>>{
         capsule: '999px'
       },
       fontFamily: {
-        display: ['Manrope', 'sans-serif'],
-        body: ['Inter', 'sans-serif']
+        // Each theme sets these variables (main.css); executive keeps Manrope and Inter.
+        display: ['var(--font-display)', 'Manrope', 'sans-serif'],
+        body: ['var(--font-body)', 'Inter', 'sans-serif']
       },
       backgroundImage: {
         'executive-glow':

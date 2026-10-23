@@ -9,6 +9,7 @@ import {
 } from '~~/shared/utils/weigh-in'
 import { GENDERS, GENDER_LABELS, ageOn, type Gender } from '~~/shared/utils/profile'
 import StatsWeightTrendChart from '~/components/stats/WeightTrendChart.vue'
+import { APPEARANCE_KEY } from '~/composables/useAppTheme'
 
 definePageMeta({
   middleware: 'protected'
@@ -68,7 +69,8 @@ async function saveProfile() {
         birthDate: birthInput.value || null
       }
     })
-    await refresh()
+    // Gender and age choose the automatic theme, so it may change now.
+    await Promise.all([refresh(), refreshNuxtData(APPEARANCE_KEY)])
   } catch (error) {
     const fetchError = error as { data?: { statusMessage?: string } }
     errorMessage.value = fetchError?.data?.statusMessage || 'Unable to save your profile. Check the values and try again.'

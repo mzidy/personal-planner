@@ -43,6 +43,8 @@ async function logout() {
         </button>
       </div>
 
+      <ShellThemeMenu trigger-class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-surface-low text-muted transition hover:text-ink" />
+
       <div class="flex items-center gap-3 rounded-full bg-surface px-3 py-2 shadow-glass">
         <div class="hidden text-right md:block">
           <p class="text-sm font-semibold text-ink">
