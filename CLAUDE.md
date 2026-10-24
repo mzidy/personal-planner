@@ -150,3 +150,14 @@ per browser via the `serene-theme` cookie. Rules live in
 - Each theme has its own shell (`components/shell/*`) and home page
   (`components/home/*`, data from `useHome()`). Teen themes rename the menu
   (Homework, Pocket money…) in `useNavigation`.
+
+## Alexa
+
+`/api/alexa` is the endpoint of the "Serene planner" custom skill (setup in
+`docs/alexa/README.md`). It has no session: every request must pass
+`verifyAlexaRequest` (Amazon's certificate URL, chain, signature over the raw
+body, 150 s timestamp) and carry the skill ID in `NUXT_ALEXA_SKILL_ID`, and it
+acts for the user its Alexa account was linked to with a one-time code. Do
+not loosen any of those checks, even to test: they are all that stands
+between the endpoint and anyone who can send a POST. Commands go through the
+Voice control library and `runVoiceAction`, so they only ever add.

@@ -295,6 +295,8 @@ const STATUS_TONES: Record<LogEntry['status'], 'teal' | 'danger' | 'mist'> = {
       </PanelCard>
     </div>
 
+    <VoiceAlexaCard />
+
     <PanelCard class="space-y-4">
       <div>
         <p class="eyebrow">Library</p>

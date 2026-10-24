@@ -48,6 +48,8 @@ export default defineNuxtConfig({
     tursoDatabaseUrl: process.env.TURSO_DATABASE_URL || '',
     tursoAuthToken: process.env.TURSO_AUTH_TOKEN || '',
     anthropicApiKey: '',
+    // The Alexa skill allowed to call /api/alexa (NUXT_ALEXA_SKILL_ID, "amzn1.ask.skill.…").
+    alexaSkillId: '',
     appOrigin: 'http://localhost:4000',
     // Off: anyone can register, and every account sees only its own data. On,
     // registration closes once the first account exists.
