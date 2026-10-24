@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "agent",
+      "invocationName": "agent smith",
       "intents": [
         {
           "name": "AMAZON.CancelIntent",

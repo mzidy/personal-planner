@@ -3,8 +3,8 @@ import type { VoiceAction } from '~~/shared/utils/voice-commands'
 
 /** What Alexa says back. Kept apart from the handler so the wording can be tested. */
 
-/** What people say to reach the skill: "Alexa, ask agent to …". */
-export const INVOCATION = 'agent'
+/** What people say to reach the skill: "Alexa, ask agent smith to …". */
+export const INVOCATION = 'agent smith'
 
 export const HELP_SPEECH =
   'You can say: add milk to my shopping list, add a task call the plumber, take a note, ' +
