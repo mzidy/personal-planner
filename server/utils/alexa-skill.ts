@@ -4,6 +4,7 @@ import { HELP_SPEECH, LINK_SPEECH, type AlexaResponse, confirmation, linkCodeFro
 import { useAlexaRepository } from '~~/server/utils/alexa-repository'
 import { useRoutineRepository } from '~~/server/utils/routine-repository'
 import { runVoiceAction } from '~~/server/utils/voice-actions'
+import { type VacuumAction, runVacuumAction } from '~~/server/utils/alexa-vacuum'
 
 /** The parts of an Alexa request envelope the skill reads. */
 export interface AlexaEnvelope {
@@ -23,6 +24,14 @@ const ADD_INTENTS: Record<string, { command: string; slot: string; what: string 
   NoteIntent: { command: 'note', slot: 'note', what: 'the note' },
   DiaryIntent: { command: 'diary', slot: 'entry', what: 'the diary entry' },
   RoutineIntent: { command: 'routine', slot: 'routine', what: 'the routine item' }
+}
+
+const VACUUM_INTENTS: Record<string, VacuumAction> = {
+  VacuumStartIntent: 'start',
+  VacuumPauseIntent: 'pause',
+  VacuumDockIntent: 'dock',
+  VacuumFindIntent: 'find',
+  VacuumStatusIntent: 'status'
 }
 
 export function applicationIdOf(envelope: AlexaEnvelope) {
@@ -94,6 +103,10 @@ export async function handleAlexaRequest(envelope: AlexaEnvelope): Promise<Alexa
     }
     if (intent === 'TodayIntent') {
       return speak(await today(userId))
+    }
+    const vacuum = VACUUM_INTENTS[intent]
+    if (vacuum) {
+      return speak(await runVacuumAction(userId, vacuum))
     }
     if (intent === 'WeightIntent') {
       return await runCommand(userId, 'weight', weightFrom(slot('kilos'), slot('decimal')), 'your weight')

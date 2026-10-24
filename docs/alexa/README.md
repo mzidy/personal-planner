@@ -40,5 +40,12 @@ English only: Alexa has no Slovenian.
 - "… add a diary entry today went well"
 - "… add reading to my daily routine"
 - "… what is on today"
+- "… start the vacuum" / "pause the vacuum" / "send the vacuum home" /
+  "find the vacuum" / "where is the vacuum" (the first vacuum connected under
+  Smart Home)
 
-Like Voice control, every command only adds; nothing is changed or deleted.
+Like Voice control, the planner commands only add; nothing is changed or deleted.
+The vacuum commands are the same fixed set as the Smart Home page's buttons.
+
+After the interaction model changes, paste it into the JSON Editor again and
+**Build skill**.

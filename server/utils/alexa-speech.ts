@@ -7,7 +7,7 @@ export const INVOCATION = 'serene planner'
 
 export const HELP_SPEECH =
   'You can say: add milk to my shopping list, add a task call the plumber, take a note, ' +
-  'my weight is eighty four point two, or what is on today.'
+  'my weight is eighty four point two, what is on today, or start the vacuum.'
 
 export const LINK_SPEECH =
   'This Alexa is not linked to your planner yet. In Serene, open Voice control and tap Link Alexa, ' +
