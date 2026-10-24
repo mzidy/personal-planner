@@ -613,3 +613,30 @@ export const savingsGoals = sqliteTable(
   },
   table => [uniqueIndex('savings_goals_user').on(table.userId)]
 )
+
+// Alexa: which Alexa account speaks for which user, and the short-lived codes
+// that make that link (Voice control → Link Alexa).
+export const alexaLinks = sqliteTable(
+  'alexa_links',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    alexaUserId: text('alexa_user_id').notNull(),
+    createdAt: text('created_at').notNull(),
+    lastUsedAt: text('last_used_at')
+  },
+  table => [uniqueIndex('alexa_links_alexa_user').on(table.alexaUserId)]
+)
+
+export const alexaLinkCodes = sqliteTable(
+  'alexa_link_codes',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    /** sha256 of the six-digit code; the code itself is shown once. */
+    codeHash: text('code_hash').notNull(),
+    expiresAt: text('expires_at').notNull(),
+    createdAt: text('created_at').notNull()
+  },
+  table => [uniqueIndex('alexa_link_codes_user').on(table.userId)]
+)

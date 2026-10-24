@@ -1,0 +1,74 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "serene planner",
+      "intents": [
+        { "name": "AMAZON.CancelIntent", "samples": [] },
+        { "name": "AMAZON.HelpIntent", "samples": [] },
+        { "name": "AMAZON.StopIntent", "samples": [] },
+        { "name": "AMAZON.NavigateHomeIntent", "samples": [] },
+        { "name": "AMAZON.FallbackIntent", "samples": [] },
+        {
+          "name": "LinkIntent",
+          "slots": [{ "name": "code", "type": "AMAZON.NUMBER" }],
+          "samples": ["link {code}", "link code {code}", "link my account {code}", "link with code {code}", "the code is {code}", "my code is {code}"]
+        },
+        {
+          "name": "ShoppingIntent",
+          "slots": [{ "name": "item", "type": "AMAZON.SearchQuery" }],
+          "samples": [
+            "add {item} to my shopping list",
+            "add {item} to the shopping list",
+            "put {item} on my shopping list",
+            "put {item} on the shopping list",
+            "buy {item}",
+            "we need {item}"
+          ]
+        },
+        {
+          "name": "TaskIntent",
+          "slots": [{ "name": "task", "type": "AMAZON.SearchQuery" }],
+          "samples": ["add a task {task}", "add task {task}", "new task {task}", "remind me to {task}", "add to my tasks {task}"]
+        },
+        {
+          "name": "NoteIntent",
+          "slots": [{ "name": "note", "type": "AMAZON.SearchQuery" }],
+          "samples": ["add a note {note}", "take a note {note}", "make a note {note}", "note that {note}"]
+        },
+        {
+          "name": "DiaryIntent",
+          "slots": [{ "name": "entry", "type": "AMAZON.SearchQuery" }],
+          "samples": ["add a diary entry {entry}", "add to my diary {entry}", "write in my diary {entry}", "dear diary {entry}"]
+        },
+        {
+          "name": "RoutineIntent",
+          "slots": [{ "name": "routine", "type": "AMAZON.SearchQuery" }],
+          "samples": ["add a routine {routine}", "add {routine} to my routine", "add {routine} to my daily routine"]
+        },
+        {
+          "name": "WeightIntent",
+          "slots": [
+            { "name": "kilos", "type": "AMAZON.NUMBER" },
+            { "name": "decimal", "type": "AMAZON.NUMBER" }
+          ],
+          "samples": [
+            "my weight is {kilos}",
+            "my weight is {kilos} point {decimal}",
+            "my weight is {kilos} kilos",
+            "my weight is {kilos} point {decimal} kilos",
+            "log my weight {kilos}",
+            "log my weight {kilos} point {decimal}",
+            "log weight {kilos} point {decimal}",
+            "i weigh {kilos}",
+            "i weigh {kilos} point {decimal}"
+          ]
+        },
+        {
+          "name": "TodayIntent",
+          "samples": ["what is on today", "what's on today", "what is my day", "how does my day look", "brief me", "what do i have today"]
+        }
+      ],
+      "types": []
+    }
+  }
+}
