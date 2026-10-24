@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "serene planner",
+      "invocationName": "agent",
       "intents": [
         {
           "name": "AMAZON.CancelIntent",

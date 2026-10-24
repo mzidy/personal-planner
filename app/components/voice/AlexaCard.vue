@@ -89,7 +89,7 @@ onBeforeUnmount(stopPolling)
             {{ status.linked === 1 ? 'One Alexa account adds' : `${status.linked} Alexa accounts add` }} to your planner<template v-if="lastUsed">
               · last used {{ lastUsed }}</template>.
           </template>
-          <template v-else>Link your Echo, then say “Alexa, ask serene planner to …”. English only.</template>
+          <template v-else>Link your Echo, then say “Alexa, ask agent to …”. English only.</template>
         </p>
       </div>
       <div class="flex gap-2">
@@ -118,7 +118,7 @@ onBeforeUnmount(stopPolling)
 
     <div v-if="code" class="rounded-soft bg-surface-low px-5 py-4">
       <p class="text-sm text-muted">Say to your Echo, within ten minutes:</p>
-      <p class="mt-2 font-display text-xl font-bold tracking-[-0.03em]">“Alexa, ask serene planner to link {{ spoken }}”</p>
+      <p class="mt-2 font-display text-xl font-bold tracking-[-0.03em]">“Alexa, ask agent to link {{ spoken }}”</p>
       <p class="mt-2 text-xs text-muted">This page notices when it worked.</p>
     </div>
 

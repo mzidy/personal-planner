@@ -99,7 +99,7 @@ export async function handleAlexaRequest(envelope: AlexaEnvelope): Promise<Alexa
 
   try {
     if (request.type === 'LaunchRequest') {
-      return speak('Serene planner here. What would you like to add?', { reprompt: HELP_SPEECH })
+      return speak('Agent here. What would you like to do?', { reprompt: HELP_SPEECH })
     }
     if (intent === 'TodayIntent') {
       return speak(await today(userId))

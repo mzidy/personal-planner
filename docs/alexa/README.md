@@ -19,7 +19,8 @@ English only: Alexa has no Slovenian.
    your own**; template **Start from scratch**.
 3. **Interaction Model → JSON Editor**: paste `interaction-model.json` from this
    folder, **Save**, **Build skill**. (It sets the invocation name to
-   `serene planner`.)
+   `agent`. Amazon prefers two-word names for published skills; if a build
+   ever refuses it, use e.g. `my agent` here and in `server/utils/alexa-speech.ts`.)
 4. **Endpoint**: HTTPS, default region
    `https://personal-planner-sandy.vercel.app/api/alexa`, certificate option
    *"My development endpoint is a sub-domain of a domain that has a wildcard
@@ -29,11 +30,11 @@ English only: Alexa has no Slovenian.
    answers that it is not set up.
 6. **Test** tab: enable testing in **Development**.
 7. In Serene, **Voice control → Link Alexa**, then say the code:
-   "Alexa, ask serene planner to link 482 913". The page shows when it worked.
+   "Alexa, ask agent to link 482 913". The page shows when it worked.
 
 ## What it understands
 
-- "Alexa, ask serene planner to add oat milk to my shopping list"
+- "Alexa, ask agent to add oat milk to my shopping list"
 - "… add a task call the plumber high priority"
 - "… take a note the boiler service is due"
 - "… my weight is eighty four point two"
