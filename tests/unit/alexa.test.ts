@@ -10,6 +10,7 @@ import {
   verifyBodySignature
 } from '../../server/utils/alexa-verify'
 import { confirmation, linkCodeFrom, speak, todaySpeech, weightFrom } from '../../server/utils/alexa-speech'
+import { vacuumStatusSpeech } from '../../server/utils/alexa-vacuum'
 import { VOICE_COMMANDS } from '../../shared/utils/voice-commands'
 
 const fixture = (name: string) => readFileSync(new URL(`../fixtures/alexa/${name}`, import.meta.url), 'utf8')
@@ -123,6 +124,14 @@ describe('what Alexa says', () => {
     expect(weightFrom('84', undefined)).toBe('84')
     expect(weightFrom('84', '25')).toBe('84.25')
     expect(weightFrom(undefined, '2')).toBeNull()
+  })
+
+  it("says what the vacuum is doing, and any error", () => {
+    const status = { state: 8, stateLabel: 'Charging', battery: 87, errorCode: 0, errorLabel: '' } as Parameters<typeof vacuumStatusSpeech>[0]
+    expect(vacuumStatusSpeech(status)).toBe('The vacuum is charging, battery 87 percent.')
+    expect(vacuumStatusSpeech({ ...status, stateLabel: 'Error', battery: null, errorCode: 2, errorLabel: 'Bumper stuck' })).toBe(
+      'The vacuum has a problem: Bumper stuck.'
+    )
   })
 
   it('ends the session unless it asks a question', () => {

@@ -3,19 +3,51 @@
     "languageModel": {
       "invocationName": "serene planner",
       "intents": [
-        { "name": "AMAZON.CancelIntent", "samples": [] },
-        { "name": "AMAZON.HelpIntent", "samples": [] },
-        { "name": "AMAZON.StopIntent", "samples": [] },
-        { "name": "AMAZON.NavigateHomeIntent", "samples": [] },
-        { "name": "AMAZON.FallbackIntent", "samples": [] },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
         {
           "name": "LinkIntent",
-          "slots": [{ "name": "code", "type": "AMAZON.NUMBER" }],
-          "samples": ["link {code}", "link code {code}", "link my account {code}", "link with code {code}", "the code is {code}", "my code is {code}"]
+          "slots": [
+            {
+              "name": "code",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "link {code}",
+            "link code {code}",
+            "link my account {code}",
+            "link with code {code}",
+            "the code is {code}",
+            "my code is {code}"
+          ]
         },
         {
           "name": "ShoppingIntent",
-          "slots": [{ "name": "item", "type": "AMAZON.SearchQuery" }],
+          "slots": [
+            {
+              "name": "item",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
           "samples": [
             "add {item} to my shopping list",
             "add {item} to the shopping list",
@@ -27,29 +59,75 @@
         },
         {
           "name": "TaskIntent",
-          "slots": [{ "name": "task", "type": "AMAZON.SearchQuery" }],
-          "samples": ["add a task {task}", "add task {task}", "new task {task}", "remind me to {task}", "add to my tasks {task}"]
+          "slots": [
+            {
+              "name": "task",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "add a task {task}",
+            "add task {task}",
+            "new task {task}",
+            "remind me to {task}",
+            "add to my tasks {task}"
+          ]
         },
         {
           "name": "NoteIntent",
-          "slots": [{ "name": "note", "type": "AMAZON.SearchQuery" }],
-          "samples": ["add a note {note}", "take a note {note}", "make a note {note}", "note that {note}"]
+          "slots": [
+            {
+              "name": "note",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "add a note {note}",
+            "take a note {note}",
+            "make a note {note}",
+            "note that {note}"
+          ]
         },
         {
           "name": "DiaryIntent",
-          "slots": [{ "name": "entry", "type": "AMAZON.SearchQuery" }],
-          "samples": ["add a diary entry {entry}", "add to my diary {entry}", "write in my diary {entry}", "dear diary {entry}"]
+          "slots": [
+            {
+              "name": "entry",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "add a diary entry {entry}",
+            "add to my diary {entry}",
+            "write in my diary {entry}",
+            "dear diary {entry}"
+          ]
         },
         {
           "name": "RoutineIntent",
-          "slots": [{ "name": "routine", "type": "AMAZON.SearchQuery" }],
-          "samples": ["add a routine {routine}", "add {routine} to my routine", "add {routine} to my daily routine"]
+          "slots": [
+            {
+              "name": "routine",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "add a routine {routine}",
+            "add {routine} to my routine",
+            "add {routine} to my daily routine"
+          ]
         },
         {
           "name": "WeightIntent",
           "slots": [
-            { "name": "kilos", "type": "AMAZON.NUMBER" },
-            { "name": "decimal", "type": "AMAZON.NUMBER" }
+            {
+              "name": "kilos",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "decimal",
+              "type": "AMAZON.NUMBER"
+            }
           ],
           "samples": [
             "my weight is {kilos}",
@@ -65,7 +143,66 @@
         },
         {
           "name": "TodayIntent",
-          "samples": ["what is on today", "what's on today", "what is my day", "how does my day look", "brief me", "what do i have today"]
+          "samples": [
+            "what is on today",
+            "what's on today",
+            "what is my day",
+            "how does my day look",
+            "brief me",
+            "what do i have today"
+          ]
+        },
+        {
+          "name": "VacuumStartIntent",
+          "samples": [
+            "start the vacuum",
+            "start vacuuming",
+            "start the robot",
+            "vacuum the house",
+            "turn on the vacuum",
+            "clean the house",
+            "start cleaning"
+          ]
+        },
+        {
+          "name": "VacuumPauseIntent",
+          "samples": [
+            "pause the vacuum",
+            "pause vacuuming",
+            "pause the robot",
+            "pause cleaning"
+          ]
+        },
+        {
+          "name": "VacuumDockIntent",
+          "samples": [
+            "send the vacuum home",
+            "send the vacuum to the dock",
+            "dock the vacuum",
+            "stop the vacuum",
+            "stop vacuuming",
+            "stop cleaning",
+            "send the robot home"
+          ]
+        },
+        {
+          "name": "VacuumFindIntent",
+          "samples": [
+            "find the vacuum",
+            "where did the vacuum go",
+            "find the robot"
+          ]
+        },
+        {
+          "name": "VacuumStatusIntent",
+          "samples": [
+            "where is the vacuum",
+            "what is the vacuum doing",
+            "how is the vacuum",
+            "vacuum status",
+            "how much battery does the vacuum have",
+            "is the vacuum charging"
+          ]
         }
       ],
       "types": []

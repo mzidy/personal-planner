@@ -160,4 +160,5 @@ body, 150 s timestamp) and carry the skill ID in `NUXT_ALEXA_SKILL_ID`, and it
 acts for the user its Alexa account was linked to with a one-time code. Do
 not loosen any of those checks, even to test: they are all that stands
 between the endpoint and anyone who can send a POST. Commands go through the
-Voice control library and `runVoiceAction`, so they only ever add.
+Voice control library and `runVoiceAction`, so they only ever add; the
+vacuum intents (`alexa-vacuum.ts`) are the Smart Home page's fixed commands.
