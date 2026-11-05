@@ -30,8 +30,9 @@ const bodyFatInput = ref('')
 const notesInput = ref('')
 const savingWeighIn = ref(false)
 
-const heightInput = ref('')
-const targetInput = ref('')
+// v-model on a number input yields a number once filled in and '' when empty.
+const heightInput = ref<number | ''>('')
+const targetInput = ref<number | ''>('')
 const genderInput = ref<Gender | ''>('')
 const birthInput = ref('')
 const savingProfile = ref(false)
@@ -43,8 +44,8 @@ const errorMessage = ref('')
 watch(
   overview,
   value => {
-    heightInput.value = value?.profile?.heightCm != null ? String(value.profile.heightCm) : ''
-    targetInput.value = value?.profile?.targetWeightKg != null ? String(value.profile.targetWeightKg) : ''
+    heightInput.value = value?.profile?.heightCm ?? ''
+    targetInput.value = value?.profile?.targetWeightKg ?? ''
     genderInput.value = value?.profile?.gender ?? ''
     birthInput.value = value?.profile?.birthDate ?? ''
   },
@@ -63,8 +64,8 @@ async function saveProfile() {
     await $fetch('/api/stats/profile', {
       method: 'POST',
       body: {
-        heightCm: heightInput.value.trim() ? Number(heightInput.value) : null,
-        targetWeightKg: targetInput.value.trim() ? Number(targetInput.value) : null,
+        heightCm: heightInput.value === '' ? null : heightInput.value,
+        targetWeightKg: targetInput.value === '' ? null : targetInput.value,
         gender: genderInput.value || null,
         birthDate: birthInput.value || null
       }

@@ -19,7 +19,8 @@ const filters: { value: BoughtFilter; label: string }[] = [
 const form = reactive({
   name: '',
   description: '',
-  price: '',
+  // v-model on a number input yields a number once filled in and '' when empty.
+  price: '' as number | '',
   horizon: 'short' as ShoppingHorizon
 })
 
@@ -63,7 +64,7 @@ async function addItem() {
         horizon: form.horizon,
         name,
         description: form.description.trim(),
-        price: form.price.trim() ? Number(form.price) : null
+        price: form.price === '' ? null : form.price
       }
     })
     form.name = ''

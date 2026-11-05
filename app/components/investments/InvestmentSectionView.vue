@@ -39,16 +39,17 @@ const form = reactive({
   name: '',
   quantity: '',
   unitCost: '',
-  currentPrice: '',
+  // v-model on a number input yields a number once filled in and '' when empty.
+  currentPrice: '' as number | '',
   optionType: 'call' as 'call' | 'put',
-  strike: '',
+  strike: '' as number | '',
   expiry: '',
   notes: ''
 })
 
 const saving = ref(false)
 const errorMessage = ref('')
-const priceDrafts = reactive<Record<string, string>>({})
+const priceDrafts = reactive<Record<string, number | ''>>({})
 
 function money(value: number | null | undefined, currency = 'USD') {
   if (value === null || value === undefined) {
@@ -92,12 +93,12 @@ async function addPosition() {
         name: form.name.trim(),
         quantity,
         unitCost,
-        currentPrice: form.currentPrice.trim() ? Number(form.currentPrice) : null,
+        currentPrice: form.currentPrice === '' ? null : form.currentPrice,
         notes: form.notes.trim(),
         ...(isOption.value
           ? {
               optionType: form.optionType,
-              strike: form.strike.trim() ? Number(form.strike) : null,
+              strike: form.strike === '' ? null : form.strike,
               expiry: form.expiry || null
             }
           : {})
@@ -122,7 +123,7 @@ async function addPosition() {
 
 async function savePrice(position: PositionWithMetrics) {
   const raw = priceDrafts[position.id]
-  if (raw === undefined || raw.trim() === '') {
+  if (raw === undefined || raw === '') {
     return
   }
 
@@ -131,7 +132,7 @@ async function savePrice(position: PositionWithMetrics) {
   try {
     await $fetch(`/api/investments/positions/${position.id}`, {
       method: 'PATCH',
-      body: { currentPrice: Number(raw) }
+      body: { currentPrice: raw }
     })
     delete priceDrafts[position.id]
     await refresh()
