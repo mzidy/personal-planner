@@ -4,7 +4,8 @@ import {
   isoWeekStart,
   localNoonIso,
   parseWeight,
-  todayIso
+  todayIso,
+  weighInWeek
 } from '../../shared/utils/weigh-in'
 
 describe('parseWeight', () => {
@@ -92,5 +93,32 @@ describe('todayIso', () => {
   it('formats a date as YYYY-MM-DD in local time', () => {
     expect(todayIso(new Date(2026, 0, 5, 23, 30))).toBe('2026-01-05')
     expect(todayIso(new Date(2026, 11, 31, 0, 1))).toBe('2026-12-31')
+  })
+})
+
+describe('weighInWeek', () => {
+  const history = [{ weekKey: '2026-11-02' }]
+
+  it('updates when any day of that week already has an entry', () => {
+    // Monday and Sunday are the two ends of the same ISO week.
+    expect(weighInWeek('2026-11-02', history)).toEqual({
+      weekKey: '2026-11-02',
+      logged: true,
+      title: 'Update that week'
+    })
+    expect(weighInWeek('2026-11-08', history).logged).toBe(true)
+  })
+
+  it('logs a new entry in a week without one', () => {
+    expect(weighInWeek('2026-11-09', history)).toEqual({
+      weekKey: '2026-11-09',
+      logged: false,
+      title: 'Log a weigh-in'
+    })
+    expect(weighInWeek('2026-11-05', []).logged).toBe(false)
+  })
+
+  it('is not logged while the date is empty', () => {
+    expect(weighInWeek('', history)).toEqual({ weekKey: null, logged: false, title: 'Log a weigh-in' })
   })
 })

@@ -67,3 +67,18 @@ export function isoWeekStart(dateIso: string): string | null {
 
   return todayIso(date)
 }
+
+/**
+ * What saving does for a date. A week holds one entry, so a date in a week that
+ * already has one replaces it; the form says so before it happens.
+ */
+export function weighInWeek(dateIso: string, history: { weekKey: string }[]) {
+  const weekKey = isoWeekStart(dateIso)
+  const logged = Boolean(weekKey && history.some(entry => entry.weekKey === weekKey))
+
+  return { weekKey, logged, title: logged ? 'Update that week' : 'Log a weigh-in' }
+}
+
+export function formatWeek(weekKey: string) {
+  return new Date(weekKey).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
