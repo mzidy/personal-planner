@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import type { StatsOverview } from '~~/shared/types/stats'
-import {
-  isPlausibleWeight,
-  isoWeekStart,
-  localNoonIso,
-  parseWeight,
-  todayIso
-} from '~~/shared/utils/weigh-in'
+import { formatWeek, todayIso, weighInWeek } from '~~/shared/utils/weigh-in'
 import { GENDERS, GENDER_LABELS, ageOn, type Gender } from '~~/shared/utils/profile'
 import StatsWeightTrendChart from '~/components/stats/WeightTrendChart.vue'
 import { APPEARANCE_KEY } from '~/composables/useAppTheme'
@@ -24,11 +18,8 @@ const TABS = [
 
 const route = useRoute()
 
-const dateInput = ref(todayIso())
-const weightInput = ref('')
-const bodyFatInput = ref('')
-const notesInput = ref('')
-const savingWeighIn = ref(false)
+const weighInDate = ref(todayIso())
+const weighInTitle = computed(() => weighInWeek(weighInDate.value, overview.value?.history ?? []).title)
 
 const heightInput = ref('')
 const targetInput = ref('')
@@ -79,51 +70,6 @@ async function saveProfile() {
   }
 }
 
-/** The ISO week the chosen date falls in, which is what the entry replaces. */
-const selectedWeekKey = computed(() => isoWeekStart(dateInput.value))
-
-const selectedWeekLogged = computed(() =>
-  Boolean(
-    selectedWeekKey.value &&
-      overview.value?.history.some(entry => entry.weekKey === selectedWeekKey.value)
-  )
-)
-
-const weightValue = computed(() => parseWeight(weightInput.value))
-const canSaveWeighIn = computed(
-  () => isPlausibleWeight(weightValue.value) && Boolean(localNoonIso(dateInput.value))
-)
-
-async function saveWeighIn() {
-  if (!canSaveWeighIn.value || savingWeighIn.value) {
-    return
-  }
-
-  savingWeighIn.value = true
-  errorMessage.value = ''
-
-  try {
-    await $fetch('/api/stats/weigh-ins', {
-      method: 'POST',
-      body: {
-        weightKg: weightValue.value,
-        bodyFatPercent: bodyFatInput.value.trim() ? Number(bodyFatInput.value) : null,
-        notes: notesInput.value.trim(),
-        measuredAt: localNoonIso(dateInput.value)
-      }
-    })
-    weightInput.value = ''
-    bodyFatInput.value = ''
-    notesInput.value = ''
-    dateInput.value = todayIso()
-    await refresh()
-  } catch {
-    errorMessage.value = 'Unable to save this weigh-in. Weight must be between 25 and 400 kg.'
-  } finally {
-    savingWeighIn.value = false
-  }
-}
-
 async function deleteWeighIn(id: string) {
   errorMessage.value = ''
 
@@ -150,9 +96,6 @@ function deltaTone(value: number | null) {
   return value < 0 ? 'text-emerald-700' : 'text-rose-700'
 }
 
-function formatWeek(weekKey: string) {
-  return new Date(weekKey).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
 </script>
 
 <template>
@@ -243,68 +186,12 @@ function formatWeek(weekKey: string) {
     </PanelCard>
 
     <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-      <PanelCard class="space-y-4">
+      <PanelCard class="space-y-2">
         <div>
           <p class="eyebrow">Weekly weigh-in</p>
-          <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">
-            {{ selectedWeekLogged ? 'Update that week' : 'Log a weigh-in' }}
-          </h2>
-          <p class="mt-2 text-sm text-muted">
-            <template v-if="selectedWeekKey">
-              Week of {{ formatWeek(selectedWeekKey) }}. One entry per week —
-              {{ selectedWeekLogged ? 'saving replaces the one already there.' : 'this will be its first.' }}
-            </template>
-            <template v-else>Pick a date.</template>
-          </p>
+          <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">{{ weighInTitle }}</h2>
         </div>
-        <form class="space-y-3" @submit.prevent="saveWeighIn">
-          <label class="block">
-            <span class="eyebrow">Date</span>
-            <input
-              v-model="dateInput"
-              class="mt-2 w-full rounded-2xl bg-surface-low px-4 py-3 outline-none"
-              type="date"
-              required
-            />
-          </label>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <label class="block">
-              <span class="eyebrow">Weight (kg)</span>
-              <input
-                v-model="weightInput"
-                class="mt-2 w-full rounded-2xl bg-surface-low px-4 py-3 outline-none"
-                type="text"
-                inputmode="decimal"
-                placeholder="82.4"
-                required
-              />
-            </label>
-            <label class="block">
-              <span class="eyebrow">Body fat % (optional)</span>
-              <input
-                v-model="bodyFatInput"
-                class="mt-2 w-full rounded-2xl bg-surface-low px-4 py-3 outline-none"
-                type="number"
-                step="0.1"
-                min="2"
-                max="70"
-                placeholder="18.5"
-              />
-            </label>
-          </div>
-          <input
-            v-model="notesInput"
-            class="w-full rounded-2xl bg-surface-low px-4 py-3 outline-none"
-            type="text"
-            placeholder="Optional note, e.g. after travel week"
-          />
-          <button
-            class="w-full rounded-full bg-ink px-5 py-3 font-semibold text-white disabled:opacity-50"
-            :disabled="savingWeighIn || !canSaveWeighIn"
-          >
-            {{ selectedWeekLogged ? 'Update weigh-in' : 'Save weigh-in' }}
-          </button>
-        </form>
+        <StatsWeighInForm v-model:date="weighInDate" :history="overview.history" @saved="refresh()" />
       </PanelCard>
 
       <PanelCard class="space-y-4">

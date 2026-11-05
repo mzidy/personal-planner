@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Plus } from 'lucide-vue-next'
 import type { DashboardPayload, UrgencyLevel } from '~~/shared/types/planner'
 import type { RoutineDayItem, RoutineOverview, RoutineState } from '~~/shared/types/routine'
 import type { StatsOverview } from '~~/shared/types/stats'
@@ -60,6 +61,13 @@ async function saveWeighIn() {
   } finally {
     savingWeighIn.value = false
   }
+}
+
+const weighInDialogOpen = ref(false)
+
+function onWeighInSaved() {
+  weighInDialogOpen.value = false
+  refreshStats()
 }
 
 function urgencyTone(urgency: UrgencyLevel) {
@@ -149,12 +157,13 @@ function routineLabel(state: RoutineState) {
       <div class="space-y-6">
         <AppPageHero eyebrow="Daily Command" :title="dashboard.greeting" />
         <PanelCard v-if="stats" class="space-y-4">
-          <div class="flex flex-wrap items-end justify-between gap-3">
-            <div>
+          <!-- On a phone the + stays beside the title and the figures get their own row. -->
+          <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
+            <div class="mr-auto">
               <p class="eyebrow">Weight</p>
               <h2 class="mt-2 font-display text-2xl font-bold tracking-[-0.05em]">Last 12 weeks</h2>
             </div>
-            <div class="flex items-end gap-6">
+            <div class="order-last flex w-full items-end gap-6 sm:order-none sm:w-auto">
               <div>
                 <p class="eyebrow">Current</p>
                 <p class="mt-1 font-display text-2xl font-bold tracking-[-0.04em]">
@@ -171,6 +180,15 @@ function routineLabel(state: RoutineState) {
                 </p>
               </div>
             </div>
+            <button
+              type="button"
+              class="self-start rounded-full bg-surface-low p-2 text-muted transition hover:text-ink"
+              title="Add weigh-in"
+              aria-label="Add weigh-in"
+              @click="weighInDialogOpen = true"
+            >
+              <Plus class="h-4 w-4" />
+            </button>
           </div>
 
           <StatsWeightTrendChart compact :series="stats.series" :target-weight-kg="stats.profile?.targetWeightKg">
@@ -180,6 +198,13 @@ function routineLabel(state: RoutineState) {
               and the trend appears here.
             </template>
           </StatsWeightTrendChart>
+
+          <StatsWeighInDialog
+            v-if="weighInDialogOpen"
+            :history="stats.history"
+            @close="weighInDialogOpen = false"
+            @saved="onWeighInSaved"
+          />
         </PanelCard>
       </div>
 
