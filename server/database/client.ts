@@ -20,6 +20,17 @@ let db: PlannerDatabase | null = null
  * workable option there — and it must use the fetch-based `@libsql/client/web`
  * build, since the default client carries native bindings.
  */
+/**
+ * require() for the local-file modules. Inside a production bundle
+ * `import.meta.url` can be a virtual path ("/_entry.js"), which resolves from
+ * the filesystem root and finds nothing, so the Mac app (desktop/) names the
+ * server's real entry file and modules are resolved from there.
+ */
+function localRequire() {
+  const entry = process.env.SERENE_SERVER_ENTRY
+  return createRequire(entry && isAbsolute(entry) ? entry : import.meta.url)
+}
+
 export function databaseSettings() {
   const config = useRuntimeConfig()
   const url = (config.tursoDatabaseUrl as string) || process.env.TURSO_DATABASE_URL || ''
@@ -75,7 +86,7 @@ export function useDatabaseClient(): Client {
   const path = databaseFilePath()
   mkdirSync(dirname(path), { recursive: true })
 
-  const require = createRequire(import.meta.url)
+  const require = localRequire()
   const { createClient: createFileClient } = require('@libsql/client') as typeof import('@libsql/client')
 
   client = createFileClient({ url: `file:${path}` })
@@ -102,7 +113,7 @@ export function useDatabase(): PlannerDatabase {
     return db
   }
 
-  const require = createRequire(import.meta.url)
+  const require = localRequire()
   const { drizzle } = require('drizzle-orm/libsql') as typeof import('drizzle-orm/libsql')
   db = drizzle(client, { schema }) as unknown as PlannerDatabase
 

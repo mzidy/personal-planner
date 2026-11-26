@@ -1,0 +1,44 @@
+{
+  "name": "serene-desktop",
+  "productName": "Serene",
+  "version": "1.0.0",
+  "description": "The Serene Executive planner as a Mac app, with its data kept on the Mac.",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "icon": "electron make-icon.cjs",
+    "dist": "electron-builder --mac --arm64"
+  },
+  "devDependencies": {
+    "electron": "45.2.3",
+    "electron-builder": "26.18.1"
+  },
+  "build": {
+    "appId": "app.serene.planner",
+    "productName": "Serene",
+    "copyright": "Private",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": ["main.cjs", "package.json"],
+    "extraResources": [
+      { "from": "../.output", "to": "server", "filter": ["**/*"] },
+      { "from": "../drizzle", "to": "drizzle", "filter": ["**/*"] }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [{ "target": "dmg", "arch": ["arm64"] }, { "target": "dir", "arch": ["arm64"] }],
+      "icon": "build/icon.icns",
+      "identity": null,
+      "hardenedRuntime": false,
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Serene listens only while you use Voice control."
+      }
+    },
+    "dmg": {
+      "title": "Serene"
+    }
+  }
+}

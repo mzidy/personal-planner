@@ -162,3 +162,14 @@ not loosen any of those checks, even to test: they are all that stands
 between the endpoint and anyone who can send a POST. Commands go through the
 Voice control library and `runVoiceAction`, so they only ever add; the
 vacuum intents (`alexa-vacuum.ts`) are the Smart Home page's fixed commands.
+
+## Mac app (desktop/)
+
+`npm run desktop:build` makes `desktop/dist/Serene-*.dmg`: Electron running
+the Nuxt server built for Node, on a SQLite file in
+`~/Library/Application Support/Serene` (details in `desktop/README.md`). Two
+things only matter there and must keep working:
+- `SERENE_DESKTOP=1` makes Nitro trace the local `@libsql/client`, its native
+  binary and `drizzle-orm/libsql`, which are loaded with `createRequire`.
+- The app sets `SERENE_SERVER_ENTRY`, and `server/database/client.ts` resolves
+  those modules from it: inside the bundle `import.meta.url` is `/_entry.js`.

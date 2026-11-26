@@ -15,7 +15,10 @@
     "db:generate": "drizzle-kit generate",
     "db:check": "drizzle-kit check",
     "db:deploy": "node scripts/db-deploy.mjs",
-    "db:copy-user": "node scripts/migrate-to-turso.mjs"
+    "db:copy-user": "node scripts/migrate-to-turso.mjs",
+    "desktop:server": "SERENE_DESKTOP=1 NITRO_PRESET=node-server nuxt build",
+    "desktop:start": "npm run desktop:server && npm --prefix desktop start",
+    "desktop:build": "npm run desktop:server && npm --prefix desktop run dist"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
