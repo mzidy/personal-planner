@@ -1,3 +1,7 @@
+import { createRequire } from 'node:module'
+
+const requireFromHere = createRequire(import.meta.url)
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -15,7 +19,6 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: 'The Serene Executive',
-      titleTemplate: '%s · The Serene Executive',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         {
@@ -78,6 +81,16 @@ export default defineNuxtConfig({
     }
   },
   nitro: {
+    // The Mac app (desktop/) runs this server on a local SQLite file. That client
+    // is loaded at runtime with createRequire, so the build has to be told to
+    // ship it and its native binary; the web build for Vercel leaves them out.
+    ...(process.env.SERENE_DESKTOP === '1'
+      ? {
+          externals: {
+            traceInclude: ['@libsql/client', 'libsql', '@libsql/darwin-arm64/index.node', 'drizzle-orm/libsql'].map(id => requireFromHere.resolve(id))
+          }
+        }
+      : {}),
     vercel: {
       // Claudemy runs its pipeline one step per request, and a step (a web
       // research call, or reading four pages) can take a few minutes.
